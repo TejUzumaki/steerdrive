@@ -7,54 +7,46 @@
     <link rel="manifest" href="manifest.json">
     <style>
         * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; box-sizing: border-box; margin: 0; padding: 0; }
-        :root { 
-            --primary: #ff0040; 
-            --secondary: #00ffff; 
-            --accent: #ff9100; 
-            --bg: #87ceeb; 
-            --carbon: #1a1a1a;
-        }
+        :root { --primary: #ff0040; --secondary: #00ffff; --accent: #ff9100; --bg: #87ceeb; --carbon: #1a1a1a; }
         body { background: var(--bg); overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
         #video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1; }
         #three-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
         .clip-ang { clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
         
-        #hud { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; z-index: 10; align-items: center; }
-        #telemetry { 
-            background: rgba(10, 10, 15, 0.8); 
-            border: 1px solid var(--secondary); 
-            padding: 10px 30px; 
-            display: flex; 
-            gap: 25px; 
-            backdrop-filter: blur(10px); 
-        }
-        .tel-box { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
-        .tel-label { font-size: 9px; color: #666; letter-spacing: 1px; margin-bottom: 2px; }
-        .tel-val { font-size: 24px; font-weight: bold; color: var(--secondary); text-shadow: 0 0 10px var(--secondary); }
+        #hud { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 10; align-items: center; }
+        #telemetry { background: rgba(10, 10, 15, 0.85); border: 1px solid var(--secondary); padding: 10px 25px; display: flex; gap: 20px; backdrop-filter: blur(10px); }
+        .tel-box { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
+        .tel-label { font-size: 8px; color: #666; letter-spacing: 1px; }
+        .tel-val { font-size: 22px; font-weight: bold; color: var(--secondary); text-shadow: 0 0 8px var(--secondary); }
+        #rpm-container { display: flex; gap: 3px; align-items: flex-end; height: 28px; }
+        .led { width: 5px; background: #222; clip-path: polygon(50% 0, 100% 20%, 100% 80%, 50% 100%, 0 80%, 0 20%); }
         
-        #rpm-container { display: flex; gap: 3px; align-items: flex-end; height: 30px; }
-        .led { width: 6px; background: #222; clip-path: polygon(50% 0, 100% 20%, 100% 80%, 50% 100%, 0 80%, 0 20%); }
+        #pos-box { background: rgba(10, 10, 15, 0.85); border: 1px solid var(--accent); color: var(--accent); padding: 8px 15px; font-weight: bold; font-size: 16px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); text-shadow: 0 0 8px var(--accent); }
         
-        #wheel-container { position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%); width: 520px; height: 520px; z-index: 10; pointer-events: none; }
-        #wheel-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.6)); transition: transform 0.05s linear; }
+        #drs-btn { background: var(--carbon); border: 1px solid #333; color: #555; padding: 8px 15px; font-weight: bold; font-size: 14px; letter-spacing: 2px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: all 0.2s; }
+        #drs-btn.active { border-color: #00ff00; color: #00ff00; box-shadow: 0 0 15px #00ff00; background: rgba(0, 255, 0, 0.1); }
+        
+        #wheel-container { position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%); width: 560px; height: 560px; z-index: 10; pointer-events: none; }
+        #wheel-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.7)); transition: transform 0.05s linear; }
         #hand-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
-        #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 40px; }
+        #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 40px; }
         #start-lights { display: flex; gap: 15px; }
         .start-light { width: 40px; height: 40px; background: #222; border-radius: 50%; border: 2px solid #444; }
-        .start-light.red { background: #ff0000; box-shadow: 0 0 20px #ff0000; border-color: #ff0000; }
+        .start-light.red { background: #ff0000; box-shadow: 0 0 25px #ff0000; border-color: #ff0000; }
         #start-text { font-size: 28px; font-weight: bold; letter-spacing: 3px; color: #fff; }
         
-        #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 50; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
-        .modal { background: var(--carbon); border: 1px solid var(--primary); padding: 60px; text-align: center; display: flex; flex-direction: column; gap: 40px; align-items: center; box-shadow: 0 0 40px rgba(255, 0, 64, 0.4); clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
-        #crash-text { color: var(--primary); font-size: 32px; font-weight: bold; letter-spacing: 4px; text-shadow: 0 0 20px var(--primary); }
-        #restart-btn { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); padding: 15px 40px; font-weight: bold; cursor: pointer; font-size: 16px; letter-spacing: 2px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+        #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 50; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .modal { background: var(--carbon); border: 1px solid var(--primary); padding: 50px; text-align: center; display: flex; flex-direction: column; gap: 30px; align-items: center; box-shadow: 0 0 40px rgba(255, 0, 64, 0.4); clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
+        #crash-text { color: var(--primary); font-size: 28px; font-weight: bold; letter-spacing: 4px; text-shadow: 0 0 20px var(--primary); }
+        #restart-btn { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); padding: 12px 35px; font-weight: bold; cursor: pointer; font-size: 14px; letter-spacing: 2px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
         
         #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; }
         .spinner { border: 2px solid rgba(255, 0, 64, 0.2); border-top: 2px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         #load-text { color: #666; font-size: 12px; letter-spacing: 2px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #pwa-toast { position: absolute; bottom: 20px; right: 20px; background: rgba(10, 10, 15, 0.9); border: 1px solid var(--secondary); color: #fff; padding: 15px; z-index: 20; font-size: 12px; max-width: 220px; display: none; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
     </style>
 </head>
 <body>
@@ -62,16 +54,13 @@
         <div class="spinner"></div>
         <div id="load-text">LOADING F1 ASSETS...</div>
     </div>
+    <div id="pwa-toast"><b>AeroF1 Ready</b><br>McQueen, add to Home Screen to install.</div>
     
     <div id="start-overlay">
         <div id="start-lights">
-            <div class="start-light"></div>
-            <div class="start-light"></div>
-            <div class="start-light"></div>
-            <div class="start-light"></div>
-            <div class="start-light"></div>
+            <div class="start-light"></div><div class="start-light"></div><div class="start-light"></div><div class="start-light"></div><div class="start-light"></div>
         </div>
-        <div id="start-text">FORMATION LAP COMPLETE</div>
+        <div id="start-text">FORMATION LAP</div>
     </div>
     
     <div id="game-over">
@@ -85,34 +74,25 @@
     <canvas id="three-canvas"></canvas>
     
     <div id="hud">
+        <div id="pos-box">P1</div>
         <div id="telemetry" class="clip-ang">
-            <div class="tel-box">
-                <div class="tel-label">GEAR</div>
-                <div class="tel-val" id="gear">N</div>
-            </div>
-            <div class="tel-box">
-                <div class="tel-label">KM/H</div>
-                <div class="tel-val" id="speed">0</div>
-            </div>
+            <div class="tel-box"><div class="tel-label">GEAR</div><div class="tel-val" id="gear">N</div></div>
+            <div class="tel-box"><div class="tel-label">KM/H</div><div class="tel-val" id="speed">0</div></div>
             <div id="rpm-container"></div>
         </div>
+        <div id="drs-btn">DRS</div>
     </div>
     
     <div id="wheel-container">
         <img id="wheel-svg" src="wheel.svg" alt="Steering Wheel">
-        <canvas id="hand-overlay" width="520" height="520"></canvas>
+        <canvas id="hand-overlay" width="560" height="560"></canvas>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
     
     <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-      }
-    }
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/" } }
     </script>
     
     <script type="module">
@@ -120,414 +100,234 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         const video = document.getElementById('video');
-        const threeCanvas = document.getElementById('three-canvas');
-        const wheelSvg = document.getElementById('wheel-svg');
         const handOverlay = document.getElementById('hand-overlay');
         const handCtx = handOverlay.getContext('2d');
+        let W = window.innerWidth, H = window.innerHeight;
 
-        let W = window.innerWidth;
-        let H = window.innerHeight;
-
-        // --- RPM LEDs Setup ---
-        const rpmContainer = document.getElementById('rpm-container');
+        // --- RPM LEDs ---
         const rpmLeds = [];
         for(let i=0; i<15; i++) {
-            const led = document.createElement('div');
-            led.className = 'led';
-            led.style.height = `${10 + i * 1.5}px`;
-            rpmContainer.appendChild(led);
-            rpmLeds.push(led);
+            const led = document.createElement('div'); led.className = 'led';
+            led.style.height = `${10 + i * 1.2}px`;
+            document.getElementById('rpm-container').appendChild(led); rpmLeds.push(led);
         }
 
-        // --- Three.js Setup ---
+        // --- Three.js Scene ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb); // Sunny sky
-        scene.fog = new THREE.Fog(0x87ceeb, 50, 300);
-
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 80, 400);
         const camera = new THREE.PerspectiveCamera(70, W / H, 0.1, 1000);
-        
-        const renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: true });
-        renderer.setSize(W, H);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), antialias: true });
+        renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
 
-        // Lighting (Bright Daylight)
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const sun = new THREE.DirectionalLight(0xffffee, 1.5);
-        sun.position.set(50, 100, 20);
-        sun.castShadow = true;
-        sun.shadow.mapSize.width = 1024;
-        sun.shadow.mapSize.height = 1024;
+        // Bright Sun
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+        sun.position.set(50, 100, 50); sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
         scene.add(sun);
 
-        // --- Procedural Track Textures ---
-        function makeAsphaltTexture() {
-            const c = document.createElement('canvas');
-            c.width = 256; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#333335';
-            ctx.fillRect(0, 0, 256, 256);
-            for(let i=0; i<2000; i++) {
-                ctx.fillStyle = `rgba(${Math.random()*50},${Math.random()*50},${Math.random()*50},0.5)`;
-                ctx.fillRect(Math.random()*256, Math.random()*256, 2, 2);
-            }
-            const tex = new THREE.CanvasTexture(c);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(4, 20);
-            return tex;
+        // --- Procedural Track ---
+        function makeTex(drawFn, repX, repY) {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+            drawFn(c.getContext('2d')); const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(repX, repY); return tex;
         }
+        const trackTex = makeTex(ctx => { ctx.fillStyle = '#333335'; ctx.fillRect(0,0,256,256); for(let i=0;i<2000;i++){ctx.fillStyle=`rgba(${Math.random()*50},${Math.random()*50},${Math.random()*50},0.5)`; ctx.fillRect(Math.random()*256, Math.random()*256, 2, 2);} }, 4, 40);
+        const grassTex = makeTex(ctx => { ctx.fillStyle = '#2a5a2a'; ctx.fillRect(0,0,256,256); for(let i=0;i<1000;i++){ctx.fillStyle=`rgba(${20+Math.random()*40},${80+Math.random()*40},${20+Math.random()*40},0.8)`; ctx.fillRect(Math.random()*256, Math.random()*256, 3, 3);} }, 2, 40);
+        const kerbTex = makeTex(ctx => { ctx.fillStyle='#ff0000'; ctx.fillRect(0,0,64,32); ctx.fillStyle='#ffffff'; ctx.fillRect(0,32,64,32); }, 1, 80);
 
-        function makeGrassTexture() {
-            const c = document.createElement('canvas');
-            c.width = 256; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#2a5a2a';
-            ctx.fillRect(0, 0, 256, 256);
-            for(let i=0; i<1000; i++) {
-                ctx.fillStyle = `rgba(${20+Math.random()*40},${80+Math.random()*40},${20+Math.random()*40},0.8)`;
-                ctx.fillRect(Math.random()*256, Math.random()*256, 3, 3);
-            }
-            const tex = new THREE.CanvasTexture(c);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(2, 20);
-            return tex;
-        }
+        const trackWidth = 20;
+        const track = new THREE.Mesh(new THREE.PlaneGeometry(trackWidth, 1000), new THREE.MeshStandardMaterial({ map: trackTex, roughness: 0.9 }));
+        track.rotation.x = -Math.PI / 2; track.position.z = -400; track.receiveShadow = true; scene.add(track);
+        const grassL = new THREE.Mesh(new THREE.PlaneGeometry(100, 1000), new THREE.MeshStandardMaterial({ map: grassTex }));
+        grassL.rotation.x = -Math.PI / 2; grassL.position.set(-(trackWidth/2 + 25), -0.01, -400); scene.add(grassL);
+        const grassR = grassL.clone(); grassR.position.x = (trackWidth/2 + 25); scene.add(grassR);
+        const kerbL = new THREE.Mesh(new THREE.BoxGeometry(1, 0.2, 1000), new THREE.MeshStandardMaterial({ map: kerbTex }));
+        kerbL.position.set(-trackWidth/2 - 0.5, 0.1, -400); scene.add(kerbL);
+        const kerbR = kerbL.clone(); kerbR.position.x = trackWidth/2 + 0.5; scene.add(kerbR);
 
-        function makeKerbTexture() {
-            const c = document.createElement('canvas');
-            c.width = 64; c.height = 64;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(0, 0, 64, 32);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 32, 64, 32);
-            const tex = new THREE.CanvasTexture(c);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(1, 40);
-            return tex;
-        }
-
-        const trackWidth = 18;
-        const trackLength = 1000;
-        
-        const trackMat = new THREE.MeshStandardMaterial({ map: makeAsphaltTexture(), roughness: 0.9 });
-        const trackGeo = new THREE.PlaneGeometry(trackWidth, trackLength);
-        const track = new THREE.Mesh(trackGeo, trackMat);
-        track.rotation.x = -Math.PI / 2;
-        track.position.z = -trackLength / 2 + 50;
-        track.receiveShadow = true;
-        scene.add(track);
-        const trackTex = trackMat.map;
-
-        const grassMat = new THREE.MeshStandardMaterial({ map: makeGrassTexture(), roughness: 1.0 });
-        const grassGeo = new THREE.PlaneGeometry(100, trackLength);
-        const grassL = new THREE.Mesh(grassGeo, grassMat);
-        grassL.rotation.x = -Math.PI / 2;
-        grassL.position.set(-(trackWidth/2 + 25), -0.01, -trackLength/2 + 50);
-        scene.add(grassL);
-        const grassR = grassL.clone();
-        grassR.position.x = (trackWidth/2 + 25);
-        scene.add(grassR);
-        const grassTex = grassMat.map;
-
-        const kerbMat = new THREE.MeshStandardMaterial({ map: makeKerbTexture(), roughness: 0.7 });
-        const kerbGeo = new THREE.BoxGeometry(1, 0.2, trackLength);
-        const kerbL = new THREE.Mesh(kerbGeo, kerbMat);
-        kerbL.position.set(-trackWidth/2 - 0.5, 0.1, -trackLength/2 + 50);
-        scene.add(kerbL);
-        const kerbR = kerbL.clone();
-        kerbR.position.x = trackWidth/2 + 0.5;
-        scene.add(kerbR);
-        const kerbTex = kerbMat.map;
-
-        // --- F1 Car Loader ---
-        let carModel = null;
-        let carWheels = [];
+        // --- F1 Cars ---
         const loader = new GLTFLoader();
-        
+        let carModel = null, carWheels = [], aiBaseModel = null, aiCars = [];
+        let carHeight = 1.0, carLength = 4.0;
+        let isCrashed = false, raceStarted = false;
+
         loader.load('assets/scene.gltf', (gltf) => {
-            carModel = gltf.scene;
-            carModel.scale.set(1, 1, 1);
-            carModel.position.set(0, 0, 0);
-            carModel.rotation.y = Math.PI; // Reverse to face -Z (Track direction)
-            carModel.traverse(obj => {
-                if(obj.isMesh) {
-                    obj.castShadow = true;
-                    obj.receiveShadow = true;
-                    if(obj.name.toLowerCase().includes('wheel') || obj.name.toLowerCase().includes('tire')) {
-                        carWheels.push(obj);
-                    }
-                }
-            });
+            carModel = gltf.scene; carModel.scale.set(1, 1, 1); carModel.rotation.y = Math.PI;
+            carModel.traverse(obj => { if(obj.isMesh) { obj.castShadow = true; if(obj.name.toLowerCase().includes('wheel')||obj.name.toLowerCase().includes('tire')) carWheels.push(obj); } });
+            let box = new THREE.Box3().setFromObject(carModel); let size = new THREE.Vector3(); box.getSize(size);
+            carHeight = size.y; carLength = size.z; window.carHeight = carHeight; window.carLength = carLength;
             scene.add(carModel);
-            let carBox = new THREE.Box3().setFromObject(carModel);
-            let carSize = new THREE.Vector3();
-            carBox.getSize(carSize);
-            window.carHeight = carSize.y;
-            window.carLength = carSize.z;
+            aiBaseModel = gltf.scene.clone();
             document.getElementById('loader').style.display = 'none';
             startSequence();
-        }, undefined, (err) => {
-            console.error("GLTF Load Error:", err);
-            document.getElementById('load-text').innerText = "MODEL LOAD FAILED";
-        });
-
-        // --- AI Cars ---
-        const aiCars = [];
-        const aiBaseModels = [];
-        
-        loader.load('assets/scene.gltf', (gltf) => {
-            aiBaseModels.push(gltf.scene);
         });
 
         function spawnAICar() {
-            if(aiBaseModels.length === 0) return;
-            const ai = aiBaseModels[0].clone();
-            ai.scale.set(1, 1, 1);
-            ai.rotation.y = Math.PI; // Face -Z
-            ai.position.set((Math.random() - 0.5) * (trackWidth - 4), 0, -200);
-            ai.userData = { speed: 0.7 + Math.random() * 0.3, targetX: (Math.random() - 0.5) * (trackWidth - 4) };
-            scene.add(ai);
-            aiCars.push(ai);
+            if(!aiBaseModel) return;
+            const ai = aiBaseModel.clone(); ai.scale.set(1,1,1); ai.rotation.y = Math.PI;
+            ai.position.set((Math.random() - 0.5) * (trackWidth - 4), 0, carModel.position.z - 100 - Math.random()*50);
+            ai.userData = { speed: 0.6 + Math.random() * 0.4, targetX: (Math.random() - 0.5) * (trackWidth - 4) };
+            scene.add(ai); aiCars.push(ai);
         }
 
-        // --- Game State ---
-        let speed = 0;
-        let maxSpeed = 1.0;
-        let score = 0;
-        let isCrashed = false;
-        let raceStarted = false;
-        let steeringInput = 0;
-        let targetSteering = 0;
-        let currentWheelRotation = 0;
-        let targetWheelRotation = 0;
-        let gForce = 0;
-        let debris = [];
-        let trackOffset = 0;
-
-        // --- F1 Start Sequence ---
         function startSequence() {
-            const lights = document.querySelectorAll('.start-light');
-            let delay = 500;
-            for(let i=0; i<5; i++) {
-                setTimeout(() => {
-                    lights[i].classList.add('red');
-                }, delay);
-                delay += 1000;
-            }
+            const lights = document.querySelectorAll('.start-light'); let delay = 500;
+            for(let i=0; i<5; i++) { setTimeout(() => lights[i].classList.add('red'), delay); delay += 1000; }
             setTimeout(() => {
                 lights.forEach(l => l.classList.remove('red'));
-                document.getElementById('start-text').innerText = "GO GO GO";
-                document.getElementById('start-text').style.color = "#00ff00";
+                document.getElementById('start-text').innerText = "GO GO GO"; document.getElementById('start-text').style.color = "#00ff00";
                 raceStarted = true;
-                setTimeout(() => {
-                    document.getElementById('start-overlay').style.display = 'none';
-                }, 1500);
+                setTimeout(() => document.getElementById('start-overlay').style.display = 'none', 1500);
             }, delay + 1000 + Math.random() * 1000);
         }
 
-        // --- MediaPipe Setup ---
+        // --- Game State ---
+        let speed = 0, maxSpeed = 1.0, boostSpeed = 1.5, isBoosting = false;
+        let steeringInput = 0, targetSteering = 0, currentWheelRotation = 0, targetWheelRotation = 0;
+        let gForce = 0, debris = [], trackOffset = 0;
+
+        // --- MediaPipe ---
         let hands;
         function initHands() {
             hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}` });
             hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
-            hands.onResults(onResults);
-            startCamera();
+            hands.onResults(onResults); startCamera();
         }
-
         async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
-                video.srcObject = stream;
-                await video.play();
-                processFrame();
-            } catch (err) { console.error("Camera error:", err); }
+            try { const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } }); video.srcObject = stream; await video.play(); processFrame(); }
+            catch(e) { console.error(e); }
         }
-
-        async function processFrame() {
-            if (video.readyState >= 2) await hands.send({ image: video });
-            requestAnimationFrame(processFrame);
-        }
+        async function processFrame() { if (video.readyState >= 2) await hands.send({ image: video }); requestAnimationFrame(processFrame); }
+        
+        function isFist(lm) { return lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y; }
 
         function onResults(results) {
             handCtx.clearRect(0, 0, handOverlay.width, handOverlay.height);
-            
             if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
                 const handsArr = results.multiHandLandmarks;
+                let h0 = handsArr[0], h1 = handsArr[1];
+                if (h0[0].x > h1[0].x) { h1 = handsArr[0]; h0 = handsArr[1]; }
                 
-                let hand0 = handsArr[0], hand1 = handsArr[1];
-                if (hand0[0].x > hand1[0].x) { hand1 = handsArr[0]; hand0 = handsArr[1]; }
+                // DRS Boost
+                if (isFist(h0) && isFist(h1)) isBoosting = true; else isBoosting = false;
+                document.getElementById('drs-btn').classList.toggle('active', isBoosting);
                 
-                const dx = hand1[0].x - hand0[0].x;
-                const dy = hand1[0].y - hand0[0].y;
+                const dx = h1[0].x - h0[0].x, dy = h1[0].y - h0[0].y;
                 const angle = Math.atan2(dy, dx);
-                
-                if (Math.abs(angle) < 0.1) targetSteering = 0;
-                else targetSteering = -angle / (Math.PI / 4);
-                
-                targetSteering = Math.max(-1, Math.min(1, targetSteering));
+                targetSteering = Math.abs(angle) < 0.1 ? 0 : Math.max(-1, Math.min(1, -angle / (Math.PI / 4)));
                 targetWheelRotation = targetSteering * (Math.PI / 2);
-                
                 drawHandsOnWheel(handsArr);
-            } else {
-                targetSteering = 0;
-                targetWheelRotation = 0;
-            }
+            } else { targetSteering = 0; targetWheelRotation = 0; isBoosting = false; }
         }
 
         function drawHandsOnWheel(handsArr) {
-            const cx = handOverlay.width / 2;
-            const cy = handOverlay.height / 2;
-            
+            const cx = handOverlay.width / 2, cy = handOverlay.height / 2;
             let minX = 1, maxX = 0, minY = 1, maxY = 0;
-            handsArr.forEach(hand => {
-                hand.forEach(pt => {
-                    minX = Math.min(minX, pt.x);
-                    maxX = Math.max(maxX, pt.x);
-                    minY = Math.min(minY, pt.y);
-                    maxY = Math.max(maxY, pt.y);
-                });
-            });
-            
-            let handWidth = Math.max(0.01, maxX - minX);
-            let handHeight = Math.max(0.01, maxY - minY);
-            let handSize = Math.max(handWidth, handHeight);
-            let scale = 320 / handSize;
-            let midX = (minX + maxX) / 2;
-            let midY = (minY + maxY) / 2;
-
-            handCtx.save();
-            handCtx.translate(cx, cy);
-            handCtx.rotate(currentWheelRotation);
-            
+            handsArr.forEach(h => h.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }));
+            let scale = 340 / Math.max(0.01, Math.max(maxX - minX, maxY - minY));
+            let midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+            handCtx.save(); handCtx.translate(cx, cy); handCtx.rotate(currentWheelRotation);
             const connections = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-
-            handsArr.forEach(hand => {
-                handCtx.strokeStyle = 'rgba(0, 255, 255, 0.9)';
-                handCtx.lineWidth = 8;
-                handCtx.shadowColor = '#00ffff';
-                handCtx.shadowBlur = 12;
-                handCtx.beginPath();
-                connections.forEach(([a, b]) => {
-                    const p1 = hand[a], p2 = hand[b];
-                    handCtx.moveTo((p1.x - midX) * scale, (p1.y - midY) * scale);
-                    handCtx.lineTo((p2.x - midX) * scale, (p2.y - midY) * scale);
-                });
+            handsArr.forEach(h => {
+                handCtx.strokeStyle = 'rgba(0, 255, 255, 0.9)'; handCtx.lineWidth = 8; handCtx.shadowColor = '#00ffff'; handCtx.shadowBlur = 12; handCtx.beginPath();
+                connections.forEach(([a, b]) => { handCtx.moveTo((h[a].x - midX) * scale, (h[a].y - midY) * scale); handCtx.lineTo((h[b].x - midX) * scale, (h[b].y - midY) * scale); });
                 handCtx.stroke();
-                
-                handCtx.fillStyle = '#ff0040';
-                handCtx.shadowColor = '#ff0040';
-                handCtx.shadowBlur = 10;
-                hand.forEach(pt => {
-                    const depth = (pt.z + 0.1) * 10;
-                    const radius = Math.max(3, 8 - depth);
-                    handCtx.beginPath();
-                    handCtx.arc((pt.x - midX) * scale, (pt.y - midY) * scale, radius, 0, Math.PI * 2);
-                    handCtx.fill();
-                });
+                handCtx.fillStyle = '#ff0040'; handCtx.shadowColor = '#ff0040'; handCtx.shadowBlur = 10;
+                h.forEach(pt => { handCtx.beginPath(); handCtx.arc((pt.x - midX) * scale, (pt.y - midY) * scale, Math.max(3, 8 - (pt.z + 0.1) * 10), 0, Math.PI * 2); handCtx.fill(); });
             });
             handCtx.restore();
         }
 
         // --- Game Loop ---
         const clock = new THREE.Clock();
+        let camShake = 0;
         function animate() {
             requestAnimationFrame(animate);
-            const delta = Math.min(0.05, clock.getDelta()); // Cap delta to prevent jumps
+            const delta = Math.min(0.05, clock.getDelta());
             
             if (raceStarted && !isCrashed && carModel) {
-                // Speed Dynamics
-                speed += delta * 0.05;
-                if (speed > maxSpeed) speed = maxSpeed;
-                score += speed * delta * 100;
+                // Speed & Boost
+                let currentMax = isBoosting ? boostSpeed : maxSpeed;
+                speed += delta * (isBoosting ? 0.15 : 0.08);
+                if (speed > currentMax) speed = currentMax;
                 
-                // Steering Smoothing
+                // Steering
                 steeringInput += (targetSteering - steeringInput) * 0.15;
                 currentWheelRotation += (targetWheelRotation - currentWheelRotation) * 0.15;
-                wheelSvg.style.transform = `rotate(${currentWheelRotation}rad)`;
+                document.getElementById('wheel-svg').style.transform = `rotate(${currentWheelRotation}rad)`;
                 
-                // G-Force & Car Movement
                 gForce += (steeringInput * speed - gForce) * 0.1;
                 
-                // Player car visual position (slight shift for feedback)
+                // Car Physics
                 carModel.position.x += steeringInput * speed * 0.5;
                 carModel.position.x = Math.max(-trackWidth/2 + 1.5, Math.min(trackWidth/2 - 1.5, carModel.position.x));
-                carModel.rotation.z = -steeringInput * 0.1; 
-                
-                // Wheels rotation
+                carModel.rotation.z = -steeringInput * 0.15;
                 carWheels.forEach(w => w.rotation.x += speed * delta * 30);
                 
-                // Camera Sync (Cockpit View)
-                const cH = window.carHeight || 1.0; const cL = window.carLength || 4.0; camera.position.set(carModel.position.x * 0.8, cH + 0.5, carModel.position.z + (cL/2 + 2.0)); 
-                camera.lookAt(carModel.position.x * 0.5, cH * 0.5, -10);
-                camera.rotation.z = gForce * 0.08; // G-force lean
-                camera.position.y += Math.sin(trackOffset * 10) * 0.02; // Track bumps
+                // Forward Movement
+                carModel.position.z -= speed * delta * 60;
                 
-                // Track Scrolling (Texture Offset for smooth performance)
-                trackOffset += speed * delta * 20;
+                // Camera (Smooth Third Person)
+                let targetCamX = carModel.position.x * 0.8;
+                let targetCamY = carHeight + 3.5;
+                let targetCamZ = carModel.position.z + carLength + 5.5;
+                camera.position.x += (targetCamX - camera.position.x) * 0.1;
+                camera.position.y += (targetCamY - camera.position.y) * 0.1;
+                camera.position.z += (targetCamZ - camera.position.z) * 0.1;
+                
+                // Camera Shake at high speed
+                if (speed > 0.8) camShake = 0.05; else camShake = 0;
+                camera.position.x += (Math.random() - 0.5) * camShake;
+                camera.position.y += (Math.random() - 0.5) * camShake;
+                
+                camera.lookAt(carModel.position.x * 0.5, carHeight * 0.8, carModel.position.z - 5);
+                camera.rotation.z = gForce * 0.08;
+                
+                // Track Scrolling
+                trackOffset += speed * delta * 60;
                 trackTex.offset.y -= speed * delta * 2;
                 grassTex.offset.y -= speed * delta * 2;
                 kerbTex.offset.y -= speed * delta * 2;
                 
                 // AI Cars
-                if (Math.random() < 0.015 && aiCars.length < 8) spawnAICar();
-                
+                if (Math.random() < 0.02 && aiCars.length < 8) spawnAICar();
                 for (let i = aiCars.length - 1; i >= 0; i--) {
                     const ai = aiCars[i];
-                    // AI moves slower than player -> they move towards +Z relative to player
-                    ai.position.z += (speed - ai.userData.speed) * 60 * delta;
-                    
-                    if(ai.position.x < ai.userData.targetX) ai.position.x += 0.05;
-                    else ai.position.x -= 0.05;
+                    ai.position.z -= ai.userData.speed * delta * 60;
+                    if(ai.position.x < ai.userData.targetX) ai.position.x += 0.05; else ai.position.x -= 0.05;
                     ai.rotation.z = -0.05;
                     
                     // Collision
-                    if (Math.abs(carModel.position.x - ai.position.x) < 2 && 
-                        Math.abs(ai.position.z - carModel.position.z) < 3) {
-                        crash();
-                    }
-                    
-                    if (ai.position.z > 20) {
-                        scene.remove(ai);
-                        aiCars.splice(i, 1);
-                    }
+                    if (Math.abs(carModel.position.x - ai.position.x) < 2 && Math.abs(ai.position.z - carModel.position.z) < 3) crash();
+                    if (ai.position.z > carModel.position.z + 20) { scene.remove(ai); aiCars.splice(i, 1); }
                 }
                 
-                // Update HUD
-                const kmh = Math.floor(speed * 340);
-                document.getElementById('speed').innerText = kmh;
+                // HUD
+                document.getElementById('speed').innerText = Math.floor(speed * 340);
                 document.getElementById('gear').innerText = Math.min(8, Math.floor(speed * 8) + 1);
-                
-                const rpmPercent = speed / maxSpeed;
-                const activeLeds = Math.floor(rpmPercent * 15);
+                const activeLeds = Math.floor((speed / boostSpeed) * 15);
                 rpmLeds.forEach((led, i) => {
-                    if(i < activeLeds) {
-                        if(i < 6) led.style.background = '#00ff00';
-                        else if(i < 11) led.style.background = '#ff9100';
-                        else led.style.background = '#ff0040';
-                    } else {
-                        led.style.background = '#222';
-                    }
+                    if(i < activeLeds) { led.style.background = i < 6 ? '#00ff00' : (i < 11 ? '#ff9100' : '#ff0040'); }
+                    else led.style.background = '#222';
                 });
+                
+                // Position Update
+                let pos = 1;
+                aiCars.forEach(ai => { if (ai.position.z < carModel.position.z) pos++; });
+                document.getElementById('pos-box').innerText = `P${pos}`;
             } else if (isCrashed) {
                 camera.position.x += (Math.random() - 0.5) * 0.5;
                 camera.position.y += (Math.random() - 0.5) * 0.5;
-                debris.forEach(d => {
-                    d.velocity.y -= 9.8 * delta;
-                    d.mesh.position.add(d.velocity.clone().multiplyScalar(delta));
-                    d.mesh.rotation.x += d.spin.x * delta;
-                    d.mesh.rotation.y += d.spin.y * delta;
-                });
+                debris.forEach(d => { d.velocity.y -= 9.8 * delta; d.mesh.position.add(d.velocity.clone().multiplyScalar(delta)); d.mesh.rotation.x += d.spin.x * delta; d.mesh.rotation.y += d.spin.y * delta; });
             }
-            
             renderer.render(scene, camera);
         }
 
         function crash() {
-            if(isCrashed) return;
-            isCrashed = true;
-            if(carModel) carModel.visible = false;
-            
+            if(isCrashed) return; isCrashed = true; if(carModel) carModel.visible = false;
             const debrisMat = new THREE.MeshStandardMaterial({ color: 0xff0040, emissive: 0xff0040 });
             for(let i=0; i<15; i++) {
                 const size = Math.random() * 0.5 + 0.2;
@@ -536,42 +336,28 @@
                 d.position.y += 1;
                 d.velocity = new THREE.Vector3((Math.random()-0.5)*15, Math.random()*15, (Math.random()-0.5)*15);
                 d.spin = new THREE.Vector3(Math.random()*10, Math.random()*10, Math.random()*10);
-                scene.add(d);
-                debris.push(d);
+                scene.add(d); debris.push(d);
             }
-            
-            setTimeout(() => { document.getElementById('game-over').style.display = 'flex'; }, 1500);
+            setTimeout(() => document.getElementById('game-over').style.display = 'flex', 1500);
         }
 
         function restart() {
-            isCrashed = false;
-            debris.forEach(d => scene.remove(d));
-            debris = [];
-            aiCars.forEach(ai => scene.remove(ai));
-            aiCars = [];
-            if(carModel) {
-                carModel.visible = true;
-                carModel.position.set(0, 0, 0);
-            }
-            score = 0;
-            speed = 0;
-            camera.position.set(0, (window.carHeight||1)+2.5, (window.carLength||4) + 4.5);
+            isCrashed = false; debris.forEach(d => scene.remove(d)); debris = [];
+            aiCars.forEach(ai => scene.remove(ai)); aiCars = [];
+            if(carModel) { carModel.visible = true; carModel.position.set(0, 0, 0); }
+            speed = 0; camera.position.set(0, carHeight + 3.5, carLength + 5.5);
             document.getElementById('game-over').style.display = 'none';
         }
         document.getElementById('restart-btn').onclick = restart;
 
-        function onResize() {
-            W = window.innerWidth; H = window.innerHeight;
-            camera.aspect = W / H;
-            camera.updateProjectionMatrix();
-            renderer.setSize(W, H);
-        }
-        window.addEventListener('resize', onResize);
+        window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; camera.aspect = W / H; camera.updateProjectionMatrix(); renderer.setSize(W, H); });
+        
+        // PWA Toast
+        setTimeout(() => { document.getElementById('pwa-toast').style.display = 'block'; setTimeout(() => document.getElementById('pwa-toast').style.display = 'none', 6000); }, 3000);
+        if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
-        setTimeout(() => { let t = document.createElement("div"); t.style = "position:absolute;bottom:20px;right:20px;background:rgba(0,0,0,0.8);border:1px solid #00ffff;color:#fff;padding:15px;z-index:20;font-size:12px;max-width:200px;clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);"; t.innerHTML = "<b>AeroF1 Ready</b><br>McQueen, add to Home Screen to install."; document.body.appendChild(t); setTimeout(() => t.style.display="none", 6000); }, 3000);
         initHands();
         animate();
     </script>
-<script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js")</script>
 </body>
 </html>

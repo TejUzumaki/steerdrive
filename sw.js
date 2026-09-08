@@ -1,20 +1,24 @@
-const CACHE_NAME = 'f1-racer-v2';
-self.addEventListener('install', e => self.skipWaiting());
+const CACHE_NAME = 'f1-racer-v3';
+const ASSETS = [
+  './',
+  './index.html',
+  './wheel.svg',
+  './manifest.json',
+  './assets/scene.gltf',
+  './assets/scene.bin',
+  './assets/textures/Meshpart1Mtl_baseColor.png',
+  './assets/textures/Meshpart2Mtl.004_baseColor.png',
+  './assets/textures/Meshpart4Mtl_baseColor.png',
+  './assets/textures/Meshpart5Mtl_baseColor.png',
+  './assets/textures/Meshpart6Mtl_baseColor.png',
+  './assets/textures/Meshpart7Mtl_baseColor.png'
+];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))).then(() => self.clients.claim())
-  );
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      return cached || fetch(e.request).then(resp => {
-        if (resp && (resp.status === 200 || resp.type === 'opaque')) {
-          const respClone = resp.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, respClone));
-        }
-        return resp;
-      }).catch(() => cached);
-    })
-  );
+  e.respondWith(caches.match(e.request).then(c => c || fetch(e.request)));
 });
