@@ -1,12 +1,8 @@
 {
-    "name": "AeroSteer F1",
-    "short_name": "AeroF1",
-    "description": "Hand-tracked F1 racing experience",
-    "start_url": "./",
-    "scope": "./",
-    "display": "standalone",
-    "orientation": "landscape",
-    "background_color": "#05050a",
-    "theme_color": "#05050a",
-    "icons": []
+  "name": "AeroSteer F1",
+  "short_name": "AeroF1",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#87ceeb",
+  "theme_color": "#05050a"
 }
