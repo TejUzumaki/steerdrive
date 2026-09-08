@@ -260,6 +260,11 @@
                 }
             });
             scene.add(carModel);
+            let carBox = new THREE.Box3().setFromObject(carModel);
+            let carSize = new THREE.Vector3();
+            carBox.getSize(carSize);
+            window.carHeight = carSize.y;
+            window.carLength = carSize.z;
             document.getElementById('loader').style.display = 'none';
             startSequence();
         }, undefined, (err) => {
@@ -454,7 +459,7 @@
                 
                 // Camera Sync (Cockpit View)
                 camera.position.set(carModel.position.x * 0.8, 1.2, carModel.position.z + 0.5); 
-                camera.lookAt(carModel.position.x * 0.5, 1.0, -10);
+                camera.lookAt(carModel.position.x * 0.5, cH * 0.5, -10);
                 camera.rotation.z = gForce * 0.08; // G-force lean
                 camera.position.y += Math.sin(trackOffset * 10) * 0.02; // Track bumps
                 
@@ -563,6 +568,7 @@
         }
         window.addEventListener('resize', onResize);
 
+        setTimeout(() => { let t = document.createElement("div"); t.style = "position:absolute;bottom:20px;right:20px;background:rgba(0,0,0,0.8);border:1px solid #00ffff;color:#fff;padding:15px;z-index:20;font-size:12px;max-width:200px;clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);"; t.innerHTML = "<b>AeroF1 Ready</b><br>McQueen, add to Home Screen to install."; document.body.appendChild(t); setTimeout(() => t.style.display="none", 6000); }, 3000);
         initHands();
         animate();
     </script>
