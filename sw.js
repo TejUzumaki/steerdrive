@@ -1,4 +1,4 @@
-const CACHE_NAME = 'f1-racer-v3';
+const CACHE_NAME = 'f1-arena-v1';
 const ASSETS = [
   './',
   './index.html',

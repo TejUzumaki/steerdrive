@@ -1,6 +1,6 @@
 {
-  "name": "AeroSteer F1",
-  "short_name": "AeroF1",
+  "name": "AeroSteer Arena",
+  "short_name": "AeroArena",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#87ceeb",
