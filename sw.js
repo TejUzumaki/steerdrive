@@ -1,9 +1,7 @@
-const CACHE_NAME = 'f1-p2p-v1';
-const ASSETS = [
-  './',
-  './index.html',
-  './wheel.svg',
-  './manifest.json',
+const CACHE_NAME = 'nexus-drive-v1';
+const MODEL_CACHE = 'nexus-models-v1';
+const SHELL_ASSETS = ['./', './index.html', './wheel.svg', './manifest.json'];
+const MODEL_ASSETS = [
   './assets/scene.gltf',
   './assets/scene.bin',
   './assets/textures/Meshpart1Mtl_baseColor.png',
@@ -13,12 +11,52 @@ const ASSETS = [
   './assets/textures/Meshpart6Mtl_baseColor.png',
   './assets/textures/Meshpart7Mtl_baseColor.png'
 ];
+
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_ASSETS))
+      .then(() => caches.open(MODEL_CACHE).then(cache => cache.addAll(MODEL_ASSETS)))
+      .then(() => self.skipWaiting())
+  );
 });
+
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))).then(() => self.clients.claim()));
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => {
+      // Delete old shell caches, but preserve model cache to save data
+      if (k !== CACHE_NAME && k !== MODEL_CACHE) return caches.delete(k);
+    }))).then(() => self.clients.claim())
+  );
 });
+
 self.addEventListener('fetch', e => {
-  e.respondWith(caches.match(e.request).then(c => c || fetch(e.request)));
+  const req = e.request;
+  const url = new URL(req.url);
+
+  // Network-first for HTML/JS/CSS so updates apply instantly
+  if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname.endsWith('.json')) {
+    e.respondWith(
+      fetch(req).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        return resp;
+      }).catch(() => caches.match(req))
+    );
+  } 
+  // Cache-first for GLTF models and textures to save bandwidth
+  else if (url.pathname.includes('/assets/')) {
+    e.respondWith(
+      caches.match(req).then(cached => {
+        return cached || fetch(req).then(resp => {
+          const clone = resp.clone();
+          caches.open(MODEL_CACHE).then(c => c.put(req, clone));
+          return resp;
+        });
+      })
+    );
+  }
+  // Cache-first for everything else
+  else {
+    e.respondWith(caches.match(req).then(c => c || fetch(req)));
+  }
 });
