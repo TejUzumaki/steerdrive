@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"SteerDrive","short_name":"SteerDrive","start_url":".","display":"standalone","background_color":"#05050a","theme_color":"#05050a"}'>
+    <title>SteerDrive</title>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; box-sizing: border-box; }
+        :root { --primary: #ff9100; --secondary: #00ffff; --bg: #05050a; }
+        body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
+        #video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1; }
+        #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #cam-canvas { position: absolute; top: 20px; right: 20px; width: 120px; height: 90px; z-index: 10; border: 1px solid rgba(0, 255, 255, 0.4); box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); background: #000; }
+        .clip-corner { clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
+        #hud { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }
+        #score-box, #speed-box { background: rgba(15, 15, 25, 0.7); border: 1px solid var(--primary); color: var(--primary); padding: 12px 20px; font-size: 14px; font-weight: bold; backdrop-filter: blur(8px); display: flex; justify-content: space-between; min-width: 180px; gap: 15px; }
+        #score, #speed { color: var(--secondary); }
+        #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal { background: rgba(15, 15, 25, 0.9); border: 1px solid var(--primary); padding: 40px; text-align: center; display: flex; flex-direction: column; gap: 30px; align-items: center; box-shadow: 0 0 30px rgba(255, 145, 0, 0.3); }
+        #crash-text { color: var(--primary); font-size: 24px; font-weight: bold; letter-spacing: 2px; }
+        #restart-btn { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); padding: 12px 30px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        #restart-btn:active { background: rgba(0, 255, 255, 0.2); }
+        #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; display: flex; justify-content: center; align-items: center; }
+        .spinner { border: 2px solid rgba(255, 145, 0, 0.2); border-top: 2px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div></div>
+    <div id="game-over">
+        <div class="modal clip-corner">
+            <div id="crash-text">SYSTEM CRASH</div>
+            <button id="restart-btn" class="clip-corner">REINITIALIZE</button>
+        </div>
+    </div>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="game-canvas"></canvas>
+    <canvas id="cam-canvas"></canvas>
+    <div id="hud">
+        <div id="score-box" class="clip-corner">SCORE: <span id="score">0</span></div>
+        <div id="speed-box" class="clip-corner">VELOCITY: <span id="speed">0</span></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+    
+    <script>
+        const video = document.getElementById('video');
+        const gameCanvas = document.getElementById('game-canvas');
+        const ctx = gameCanvas.getContext('2d');
+        const camCanvas = document.getElementById('cam-canvas');
+        const camCtx = camCanvas.getContext('2d');
+
+        let W = window.innerWidth;
+        let H = window.innerHeight;
+        gameCanvas.width = W;
+        gameCanvas.height = H;
+        camCanvas.width = 120;
+        camCanvas.height = 90;
+
+        let car = { x: W/2, y: H - 150, w: 50, h: 90 };
+        let obstacles = [];
+        let score = 0;
+        let speed = 5;
+        let isGameOver = false;
+        let steeringInput = 0; 
+        let targetSteering = 0;
+
+        // --- MediaPipe Setup ---
+        let hands;
+        function initHands() {
+            hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}` });
+            hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+            hands.onResults(onResults);
+            startRawCamera();
+        }
+
+        async function startRawCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
+                video.srcObject = stream;
+                await video.play();
+                document.getElementById('loader').style.display = 'none';
+                processFrame();
+            } catch (err) { console.error("Camera error:", err); }
+        }
+
+        async function processFrame() {
+            if (video.readyState >= 2) await hands.send({ image: video });
+            requestAnimationFrame(processFrame);
+        }
+
+        function onResults(results) {
+            // Draw camera feed mirrored
+            camCtx.save();
+            camCtx.scale(-1, 1);
+            camCtx.drawImage(video, -camCanvas.width, 0, camCanvas.width, camCanvas.height);
+            camCtx.restore();
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
+                const handsArr = results.multiHandLandmarks;
+                
+                // Draw hand skeleton on cam canvas (mirrored)
+                camCtx.save();
+                camCtx.scale(-1, 1);
+                for (const landmarks of handsArr) {
+                    drawConnectors(camCtx, landmarks, HAND_CONNECTIONS, { color: 'rgba(0,255,255,0.9)', lineWidth: 2 });
+                    drawLandmarks(camCtx, landmarks, { color: 'rgba(255,145,0,1)', fillColor: 'rgba(255,145,0,1)', lineWidth: 1, radius: 2 });
+                }
+                camCtx.restore();
+                
+                // Sort hands by X to determine left/right in raw coordinate space
+                let hand0 = handsArr[0], hand1 = handsArr[1];
+                if (hand0[0].x > hand1[0].x) {
+                    hand1 = handsArr[0]; hand0 = handsArr[1];
+                }
+                
+                // Calculate steering angle based on the line between the two wrists
+                const dx = hand1[0].x - hand0[0].x;
+                const dy = hand1[0].y - hand0[0].y;
+                const angle = Math.atan2(dy, dx);
+                
+                // Deadzone to prevent jitter
+                if (Math.abs(angle) < 0.1) targetSteering = 0;
+                else targetSteering = -angle / (Math.PI / 6); // Max steering at 30 degrees tilt
+                
+                targetSteering = Math.max(-1, Math.min(1, targetSteering));
+            } else {
+                // Auto-recenter if hands are lost
+                targetSteering = 0;
+            }
+        }
+
+        // --- Game Logic ---
+        function drawCar(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x - w/2, y - h/2 + 15);
+            ctx.lineTo(x - w/2, y + h/2);
+            ctx.lineTo(x + w/2, y + h/2);
+            ctx.lineTo(x + w/2, y - h/2 + 15);
+            ctx.lineTo(x + w/2 - 8, y - h/2);
+            ctx.lineTo(x - w/2 + 8, y - h/2);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(x - w/2 + 10, y - h/2 + 20, w - 20, 25);
+            
+            ctx.fillStyle = '#ff0040';
+            ctx.fillRect(x - w/2 + 5, y + h/2 - 8, 8, 4);
+            ctx.fillRect(x + w/2 - 13, y + h/2 - 8, 8, 4);
+        }
+
+        function spawnObstacle() {
+            let laneWidth = W / 3;
+            let lane = Math.floor(Math.random() * 3);
+            obstacles.push({ x: lane * laneWidth + (laneWidth - 50)/2, y: -90, w: 50, h: 90 });
+        }
+
+        function update() {
+            if (isGameOver) return;
+            
+            // Smooth steering
+            steeringInput += (targetSteering - steeringInput) * 0.1;
+            
+            score += speed * 0.1;
+            speed += 0.001;
+            if (speed > 15) speed = 15;
+            
+            car.x += steeringInput * 8;
+            car.x = Math.max(60, Math.min(W - 60, car.x));
+            
+            if (Math.random() < 0.02 + speed * 0.003) {
+                spawnObstacle();
+            }
+            
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += speed;
+                if (obstacles[i].y > H) {
+                    obstacles.splice(i, 1);
+                } else if (car.x - car.w/2 < obstacles[i].x + obstacles[i].w &&
+                           car.x + car.w/2 > obstacles[i].x &&
+                           car.y - car.h/2 < obstacles[i].y + obstacles[i].h &&
+                           car.y + car.h/2 > obstacles[i].y) {
+                    isGameOver = true;
+                    document.getElementById('game-over').style.display = 'flex';
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#05050a';
+            ctx.fillRect(0, 0, W, H);
+            
+            // Road borders
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 0); ctx.lineTo(50, H);
+            ctx.moveTo(W-50, 0); ctx.lineTo(W-50, H);
+            ctx.stroke();
+            
+            // Scrolling center lines
+            let roadOffset = (Date.now() / 1000 * speed * 10) % 40;
+            ctx.strokeStyle = 'rgba(255, 145, 0, 0.6)';
+            ctx.setLineDash([20, 20]);
+            ctx.lineDashOffset = -roadOffset;
+            ctx.beginPath();
+            ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            drawCar(car.x, car.y, car.w, car.h, '#ff9100');
+            
+            for (let obs of obstacles) {
+                drawCar(obs.x + obs.w/2, obs.y + obs.h/2, obs.w, obs.h, '#ff0040');
+            }
+            
+            document.getElementById('score').innerText = Math.floor(score);
+            document.getElementById('speed').innerText = Math.floor(speed * 10);
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        function restart() {
+            isGameOver = false;
+            obstacles = [];
+            score = 0;
+            speed = 5;
+            car.x = W/2;
+            document.getElementById('game-over').style.display = 'none';
+        }
+
+        document.getElementById('restart-btn').onclick = restart;
+
+        function onResize() {
+            W = window.innerWidth;
+            H = window.innerHeight;
+            gameCanvas.width = W;
+            gameCanvas.height = H;
+            car.y = H - 150;
+        }
+        window.addEventListener('resize', onResize);
+
+        initHands();
+        loop();
+    </script>
+</body>
+</html>
