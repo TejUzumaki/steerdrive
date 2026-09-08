@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"SteerDrive","short_name":"SteerDrive","start_url":".","display":"standalone","background_color":"#05050a","theme_color":"#05050a"}'>
-    <title>SteerDrive</title>
+    <title>AeroSteer 3D</title>
     <style>
-        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; box-sizing: border-box; }
-        :root { --primary: #ff9100; --secondary: #00ffff; --bg: #05050a; }
-        body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
+        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --primary: #ff9100; --secondary: #00ffff; --danger: #ff0040; --bg: #05050a; }
+        body { background: var(--bg); overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
         #video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1; }
-        #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #cam-canvas { position: absolute; top: 20px; right: 20px; width: 120px; height: 90px; z-index: 10; border: 1px solid rgba(0, 255, 255, 0.4); box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); background: #000; }
+        #three-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         .clip-corner { clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
+        
         #hud { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }
-        #score-box, #speed-box { background: rgba(15, 15, 25, 0.7); border: 1px solid var(--primary); color: var(--primary); padding: 12px 20px; font-size: 14px; font-weight: bold; backdrop-filter: blur(8px); display: flex; justify-content: space-between; min-width: 180px; gap: 15px; }
-        #score, #speed { color: var(--secondary); }
+        .hud-box { background: rgba(15, 15, 25, 0.7); border: 1px solid var(--primary); color: var(--primary); padding: 12px 20px; font-size: 14px; font-weight: bold; backdrop-filter: blur(8px); display: flex; justify-content: space-between; min-width: 180px; gap: 15px; }
+        .hud-val { color: var(--secondary); }
+        
+        #wheel-container { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 220px; height: 220px; z-index: 10; }
+        #wheel-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(255, 145, 0, 0.3)); transition: transform 0.05s linear; }
+        #hand-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
         #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal { background: rgba(15, 15, 25, 0.9); border: 1px solid var(--primary); padding: 40px; text-align: center; display: flex; flex-direction: column; gap: 30px; align-items: center; box-shadow: 0 0 30px rgba(255, 145, 0, 0.3); }
-        #crash-text { color: var(--primary); font-size: 24px; font-weight: bold; letter-spacing: 2px; }
-        #restart-btn { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); padding: 12px 30px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        #restart-btn:active { background: rgba(0, 255, 255, 0.2); }
+        .modal { background: rgba(15, 15, 25, 0.9); border: 1px solid var(--danger); padding: 40px; text-align: center; display: flex; flex-direction: column; gap: 30px; align-items: center; box-shadow: 0 0 30px rgba(255, 0, 64, 0.3); }
+        #crash-text { color: var(--danger); font-size: 24px; font-weight: bold; letter-spacing: 2px; }
+        #restart-btn { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); padding: 12px 30px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        
         #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; display: flex; justify-content: center; align-items: center; }
         .spinner { border: 2px solid rgba(255, 145, 0, 0.2); border-top: 2px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -32,42 +34,165 @@
     <div id="loader"><div class="spinner"></div></div>
     <div id="game-over">
         <div class="modal clip-corner">
-            <div id="crash-text">SYSTEM CRASH</div>
+            <div id="crash-text">CRITICAL IMPACT</div>
             <button id="restart-btn" class="clip-corner">REINITIALIZE</button>
         </div>
     </div>
+    
     <video id="video" autoplay playsinline muted></video>
-    <canvas id="game-canvas"></canvas>
-    <canvas id="cam-canvas"></canvas>
+    <canvas id="three-canvas"></canvas>
+    
     <div id="hud">
-        <div id="score-box" class="clip-corner">SCORE: <span id="score">0</span></div>
-        <div id="speed-box" class="clip-corner">VELOCITY: <span id="speed">0</span></div>
+        <div class="hud-box clip-corner">SCORE: <span id="score" class="hud-val">0</span></div>
+        <div class="hud-box clip-corner">VELOCITY: <span id="speed" class="hud-val">0</span></div>
+    </div>
+    
+    <div id="wheel-container">
+        <img id="wheel-svg" src="wheel.svg" alt="Steering Wheel">
+        <canvas id="hand-overlay" width="220" height="220"></canvas>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
     
-    <script>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+      }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+
         const video = document.getElementById('video');
-        const gameCanvas = document.getElementById('game-canvas');
-        const ctx = gameCanvas.getContext('2d');
-        const camCanvas = document.getElementById('cam-canvas');
-        const camCtx = camCanvas.getContext('2d');
+        const threeCanvas = document.getElementById('three-canvas');
+        const wheelSvg = document.getElementById('wheel-svg');
+        const handOverlay = document.getElementById('hand-overlay');
+        const handCtx = handOverlay.getContext('2d');
 
         let W = window.innerWidth;
         let H = window.innerHeight;
-        gameCanvas.width = W;
-        gameCanvas.height = H;
-        camCanvas.width = 120;
-        camCanvas.height = 90;
 
-        let car = { x: W/2, y: H - 150, w: 50, h: 90 };
-        let obstacles = [];
+        // --- Three.js Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05050a);
+        scene.fog = new THREE.Fog(0x05050a, 10, 50);
+
+        const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
+        camera.position.set(0, 4, 8);
+        camera.lookAt(0, 1, 0);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: true });
+        renderer.setSize(W, H);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 10, 5);
+        scene.add(dirLight);
+
+        // --- Procedural Road ---
+        const roadCanvas = document.createElement('canvas');
+        roadCanvas.width = 256; roadCanvas.height = 512;
+        const rCtx = roadCanvas.getContext('2d');
+        rCtx.fillStyle = '#111118';
+        rCtx.fillRect(0, 0, 256, 512);
+        rCtx.fillStyle = '#ff9100';
+        rCtx.fillRect(10, 0, 10, 512);
+        rCtx.fillRect(236, 0, 10, 512);
+        rCtx.fillStyle = '#00ffff';
+        for(let i=0; i<8; i++) {
+            rCtx.fillRect(123, i*64 + 16, 10, 32);
+        }
+        const roadTex = new THREE.CanvasTexture(roadCanvas);
+        roadTex.wrapT = THREE.RepeatWrapping;
+        roadTex.repeat.y = 10;
+
+        const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, emissive: 0xffffff, emissiveMap: roadTex, emissiveIntensity: 0.5 });
+        const roadGeo = new THREE.PlaneGeometry(12, 100);
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        road.position.z = -30;
+        scene.add(road);
+
+        // Side walls
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, emissive: 0x00ffff, emissiveIntensity: 0.2 });
+        const wallGeo = new THREE.BoxGeometry(1, 2, 100);
+        const leftWall = new THREE.Mesh(wallGeo, wallMat);
+        leftWall.position.set(-6.5, 1, -30);
+        scene.add(leftWall);
+        const rightWall = new THREE.Mesh(wallGeo, wallMat);
+        rightWall.position.set(6.5, 1, -30);
+        scene.add(rightWall);
+
+        // --- Player Car ---
+        const carGroup = new THREE.Group();
+        const carBodyMat = new THREE.MeshStandardMaterial({ color: 0xff9100, emissive: 0xff4500, emissiveIntensity: 0.3 });
+        const carGlassMat = new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.6 });
+        
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 4), carBodyMat);
+        body.position.y = 0.5;
+        carGroup.add(body);
+        
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 2), carGlassMat);
+        cabin.position.set(0, 0.95, -0.5);
+        carGroup.add(cabin);
+        
+        const spoiler = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 0.5), carBodyMat);
+        spoiler.position.set(0, 0.85, 2);
+        carGroup.add(spoiler);
+        const spoilerLeg1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), carBodyMat);
+        spoilerLeg1.position.set(-0.8, 0.65, 2);
+        carGroup.add(spoilerLeg1);
+        const spoilerLeg2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), carBodyMat);
+        spoilerLeg2.position.set(0.8, 0.65, 2);
+        carGroup.add(spoilerLeg2);
+
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+        const carWheels = [];
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([x, z]) => {
+            const w = new THREE.Mesh(wheelGeo, wheelMat);
+            w.rotation.z = Math.PI / 2;
+            w.position.set(x * 1.1, 0.3, z * 1.5);
+            carGroup.add(w);
+            carWheels.push(w);
+        });
+
+        const headlight1 = new THREE.PointLight(0xffffff, 1, 20);
+        headlight1.position.set(-0.5, 0.5, -2.5);
+        carGroup.add(headlight1);
+        
+        scene.add(carGroup);
+
+        // --- Obstacles ---
+        const obstacles = [];
+        const obsMat = new THREE.MeshStandardMaterial({ color: 0xff0040, emissive: 0xff0040, emissiveIntensity: 0.5 });
+        const obsGeo = new THREE.BoxGeometry(2, 1.5, 2);
+
+        function spawnObstacle() {
+            const obs = new THREE.Mesh(obsGeo, obsMat);
+            obs.position.x = (Math.random() - 0.5) * 8;
+            obs.position.y = 0.75;
+            obs.position.z = -80;
+            scene.add(obs);
+            obstacles.push(obs);
+        }
+
+        // --- Game State ---
+        let speed = 0.5;
+        let maxSpeed = 2.0;
         let score = 0;
-        let speed = 5;
-        let isGameOver = false;
-        let steeringInput = 0; 
+        let isCrashed = false;
+        let steeringInput = 0;
         let targetSteering = 0;
+        let currentWheelRotation = 0;
+        let targetWheelRotation = 0;
+        let debris = [];
+        let shakeAmount = 0;
 
         // --- MediaPipe Setup ---
         let hands;
@@ -75,10 +200,10 @@
             hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}` });
             hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
             hands.onResults(onResults);
-            startRawCamera();
+            startCamera();
         }
 
-        async function startRawCamera() {
+        async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
                 video.srcObject = stream;
@@ -94,164 +219,222 @@
         }
 
         function onResults(results) {
-            // Draw camera feed mirrored
-            camCtx.save();
-            camCtx.scale(-1, 1);
-            camCtx.drawImage(video, -camCanvas.width, 0, camCanvas.width, camCanvas.height);
-            camCtx.restore();
+            handCtx.clearRect(0, 0, handOverlay.width, handOverlay.height);
             
             if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
                 const handsArr = results.multiHandLandmarks;
                 
-                // Draw hand skeleton on cam canvas (mirrored)
-                camCtx.save();
-                camCtx.scale(-1, 1);
-                for (const landmarks of handsArr) {
-                    drawConnectors(camCtx, landmarks, HAND_CONNECTIONS, { color: 'rgba(0,255,255,0.9)', lineWidth: 2 });
-                    drawLandmarks(camCtx, landmarks, { color: 'rgba(255,145,0,1)', fillColor: 'rgba(255,145,0,1)', lineWidth: 1, radius: 2 });
-                }
-                camCtx.restore();
-                
-                // Sort hands by X to determine left/right in raw coordinate space
+                // Sort hands by X
                 let hand0 = handsArr[0], hand1 = handsArr[1];
-                if (hand0[0].x > hand1[0].x) {
-                    hand1 = handsArr[0]; hand0 = handsArr[1];
-                }
+                if (hand0[0].x > hand1[0].x) { hand1 = handsArr[0]; hand0 = handsArr[1]; }
                 
-                // Calculate steering angle based on the line between the two wrists
+                // Steering Angle
                 const dx = hand1[0].x - hand0[0].x;
                 const dy = hand1[0].y - hand0[0].y;
                 const angle = Math.atan2(dy, dx);
                 
-                // Deadzone to prevent jitter
                 if (Math.abs(angle) < 0.1) targetSteering = 0;
-                else targetSteering = -angle / (Math.PI / 6); // Max steering at 30 degrees tilt
+                else targetSteering = -angle / (Math.PI / 4); // Max 45deg tilt = full lock
                 
                 targetSteering = Math.max(-1, Math.min(1, targetSteering));
+                targetWheelRotation = targetSteering * (Math.PI / 2); // Wheel turns 90deg max
+                
+                // Draw 3D-like hands on wheel overlay
+                drawHandsOnWheel(handsArr);
             } else {
-                // Auto-recenter if hands are lost
                 targetSteering = 0;
+                targetWheelRotation = 0;
             }
         }
 
-        // --- Game Logic ---
-        function drawCar(x, y, w, h, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(x - w/2, y - h/2 + 15);
-            ctx.lineTo(x - w/2, y + h/2);
-            ctx.lineTo(x + w/2, y + h/2);
-            ctx.lineTo(x + w/2, y - h/2 + 15);
-            ctx.lineTo(x + w/2 - 8, y - h/2);
-            ctx.lineTo(x - w/2 + 8, y - h/2);
-            ctx.closePath();
-            ctx.fill();
+        function drawHandsOnWheel(handsArr) {
+            const cx = handOverlay.width / 2;
+            const cy = handOverlay.height / 2;
             
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(x - w/2 + 10, y - h/2 + 20, w - 20, 25);
+            // Calculate bounding box to scale hands to the wheel
+            let minX = 1, maxX = 0, minY = 1, maxY = 0;
+            handsArr.forEach(hand => {
+                hand.forEach(pt => {
+                    minX = Math.min(minX, pt.x);
+                    maxX = Math.max(maxX, pt.x);
+                    minY = Math.min(minY, pt.y);
+                    maxY = Math.max(maxY, pt.y);
+                });
+            });
             
-            ctx.fillStyle = '#ff0040';
-            ctx.fillRect(x - w/2 + 5, y + h/2 - 8, 8, 4);
-            ctx.fillRect(x + w/2 - 13, y + h/2 - 8, 8, 4);
+            let handWidth = Math.max(0.01, maxX - minX);
+            let handHeight = Math.max(0.01, maxY - minY);
+            let handSize = Math.max(handWidth, handHeight);
+            let scale = 150 / handSize; // Scale to fit nicely on 220px wheel
+            
+            let midX = (minX + maxX) / 2;
+            let midY = (minY + maxY) / 2;
+
+            handCtx.save();
+            handCtx.translate(cx, cy);
+            handCtx.rotate(currentWheelRotation); // Sync with wheel rotation
+            
+            const connections = [
+                [0,1],[1,2],[2,3],[3,4],
+                [0,5],[5,6],[6,7],[7,8],
+                [5,9],[9,10],[10,11],[11,12],
+                [9,13],[13,14],[14,15],[15,16],
+                [13,17],[17,18],[18,19],[19,20],
+                [0,17]
+            ];
+
+            handsArr.forEach(hand => {
+                // Draw connections
+                handCtx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+                handCtx.lineWidth = 4;
+                handCtx.shadowColor = '#00ffff';
+                handCtx.shadowBlur = 8;
+                handCtx.beginPath();
+                connections.forEach(([a, b]) => {
+                    const p1 = hand[a], p2 = hand[b];
+                    const x1 = (p1.x - midX) * scale;
+                    const y1 = (p1.y - midY) * scale;
+                    const x2 = (p2.x - midX) * scale;
+                    const y2 = (p2.y - midY) * scale;
+                    handCtx.moveTo(x1, y1);
+                    handCtx.lineTo(x2, y2);
+                });
+                handCtx.stroke();
+                
+                // Draw joints
+                handCtx.fillStyle = '#ff9100';
+                handCtx.shadowColor = '#ff9100';
+                handCtx.shadowBlur = 5;
+                hand.forEach(pt => {
+                    const x = (pt.x - midX) * scale;
+                    const y = (pt.y - midY) * scale;
+                    const depth = (pt.z + 0.1) * 10; // Pseudo-3D depth sizing
+                    const radius = Math.max(1, 4 - depth);
+                    handCtx.beginPath();
+                    handCtx.arc(x, y, radius, 0, Math.PI * 2);
+                    handCtx.fill();
+                });
+            });
+            handCtx.restore();
         }
 
-        function spawnObstacle() {
-            let laneWidth = W / 3;
-            let lane = Math.floor(Math.random() * 3);
-            obstacles.push({ x: lane * laneWidth + (laneWidth - 50)/2, y: -90, w: 50, h: 90 });
-        }
-
-        function update() {
-            if (isGameOver) return;
+        // --- Game Loop ---
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
             
-            // Smooth steering
-            steeringInput += (targetSteering - steeringInput) * 0.1;
-            
-            score += speed * 0.1;
-            speed += 0.001;
-            if (speed > 15) speed = 15;
-            
-            car.x += steeringInput * 8;
-            car.x = Math.max(60, Math.min(W - 60, car.x));
-            
-            if (Math.random() < 0.02 + speed * 0.003) {
-                spawnObstacle();
-            }
-            
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].y += speed;
-                if (obstacles[i].y > H) {
-                    obstacles.splice(i, 1);
-                } else if (car.x - car.w/2 < obstacles[i].x + obstacles[i].w &&
-                           car.x + car.w/2 > obstacles[i].x &&
-                           car.y - car.h/2 < obstacles[i].y + obstacles[i].h &&
-                           car.y + car.h/2 > obstacles[i].y) {
-                    isGameOver = true;
-                    document.getElementById('game-over').style.display = 'flex';
+            if (!isCrashed) {
+                // Speed increase
+                speed += delta * 0.05;
+                if (speed > maxSpeed) speed = maxSpeed;
+                score += speed * delta * 10;
+                
+                // Steering smoothing
+                steeringInput += (targetSteering - steeringInput) * 0.1;
+                currentWheelRotation += (targetWheelRotation - currentWheelRotation) * 0.1;
+                wheelSvg.style.transform = `rotate(${currentWheelRotation}rad)`;
+                
+                // Car movement
+                carGroup.position.x += steeringInput * speed * 0.5;
+                carGroup.position.x = Math.max(-5, Math.min(5, carGroup.position.x));
+                carGroup.rotation.y = -steeringInput * 0.3; // Tilt car into turn
+                carWheels.forEach(w => w.rotation.x += speed * delta * 5);
+                
+                // Road scroll
+                roadTex.offset.y -= speed * delta * 2;
+                
+                // Obstacles
+                if (Math.random() < 0.02 + speed * 0.01) spawnObstacle();
+                
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].position.z += speed * delta * 30;
+                    
+                    // Collision
+                    if (Math.abs(carGroup.position.x - obstacles[i].position.x) < 1.8 && 
+                        Math.abs(obstacles[i].position.z) < 2.5) {
+                        crash();
+                    }
+                    
+                    if (obstacles[i].position.z > 10) {
+                        scene.remove(obstacles[i]);
+                        obstacles.splice(i, 1);
+                    }
                 }
-            }
-        }
-
-        function draw() {
-            ctx.fillStyle = '#05050a';
-            ctx.fillRect(0, 0, W, H);
-            
-            // Road borders
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(50, 0); ctx.lineTo(50, H);
-            ctx.moveTo(W-50, 0); ctx.lineTo(W-50, H);
-            ctx.stroke();
-            
-            // Scrolling center lines
-            let roadOffset = (Date.now() / 1000 * speed * 10) % 40;
-            ctx.strokeStyle = 'rgba(255, 145, 0, 0.6)';
-            ctx.setLineDash([20, 20]);
-            ctx.lineDashOffset = -roadOffset;
-            ctx.beginPath();
-            ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            drawCar(car.x, car.y, car.w, car.h, '#ff9100');
-            
-            for (let obs of obstacles) {
-                drawCar(obs.x + obs.w/2, obs.y + obs.h/2, obs.w, obs.h, '#ff0040');
+                
+                // Camera follow
+                camera.position.x = carGroup.position.x * 0.5;
+                camera.lookAt(carGroup.position.x * 0.2, 1, 0);
+            } else {
+                // Crash physics
+                shakeAmount = Math.max(0, shakeAmount - delta * 5);
+                camera.position.x += (Math.random() - 0.5) * shakeAmount;
+                camera.position.y += (Math.random() - 0.5) * shakeAmount;
+                
+                debris.forEach(d => {
+                    d.mesh.velocity.y -= 9.8 * delta;
+                    d.mesh.position.x += d.mesh.velocity.x * delta;
+                    d.mesh.position.y += d.mesh.velocity.y * delta;
+                    d.mesh.position.z += d.mesh.velocity.z * delta;
+                    d.mesh.rotation.x += d.mesh.spin.x * delta;
+                    d.mesh.rotation.y += d.mesh.spin.y * delta;
+                    d.mesh.rotation.z += d.mesh.spin.z * delta;
+                });
             }
             
             document.getElementById('score').innerText = Math.floor(score);
-            document.getElementById('speed').innerText = Math.floor(speed * 10);
+            document.getElementById('speed').innerText = Math.floor(speed * 120);
+            
+            renderer.render(scene, camera);
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
+        function crash() {
+            isCrashed = true;
+            shakeAmount = 0.5;
+            carGroup.visible = false;
+            
+            // Spawn debris
+            const debrisMat = new THREE.MeshStandardMaterial({ color: 0xff9100, emissive: 0xff4500 });
+            for(let i=0; i<10; i++) {
+                const size = Math.random() * 0.5 + 0.2;
+                const d = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), debrisMat);
+                d.position.copy(carGroup.position);
+                d.velocity = new THREE.Vector3((Math.random()-0.5)*10, Math.random()*10, (Math.random()-0.5)*10);
+                d.spin = new THREE.Vector3(Math.random()*5, Math.random()*5, Math.random()*5);
+                scene.add(d);
+                debris.push({mesh: d});
+            }
+            
+            setTimeout(() => {
+                document.getElementById('game-over').style.display = 'flex';
+            }, 1500);
         }
 
         function restart() {
-            isGameOver = false;
+            isCrashed = false;
+            debris.forEach(d => scene.remove(d.mesh));
+            debris = [];
+            obstacles.forEach(o => scene.remove(o));
             obstacles = [];
+            carGroup.visible = true;
+            carGroup.position.set(0, 0, 0);
             score = 0;
-            speed = 5;
-            car.x = W/2;
+            speed = 0.5;
+            camera.position.set(0, 4, 8);
             document.getElementById('game-over').style.display = 'none';
         }
-
         document.getElementById('restart-btn').onclick = restart;
 
         function onResize() {
-            W = window.innerWidth;
-            H = window.innerHeight;
-            gameCanvas.width = W;
-            gameCanvas.height = H;
-            car.y = H - 150;
+            W = window.innerWidth; H = window.innerHeight;
+            camera.aspect = W / H;
+            camera.updateProjectionMatrix();
+            renderer.setSize(W, H);
         }
         window.addEventListener('resize', onResize);
 
         initHands();
-        loop();
+        animate();
     </script>
 </body>
 </html>
