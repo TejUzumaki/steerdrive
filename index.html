@@ -458,7 +458,7 @@
                 carWheels.forEach(w => w.rotation.x += speed * delta * 30);
                 
                 // Camera Sync (Cockpit View)
-                camera.position.set(carModel.position.x * 0.8, 1.2, carModel.position.z + 0.5); 
+                const cH = window.carHeight || 1.0; const cL = window.carLength || 4.0; camera.position.set(carModel.position.x * 0.8, cH + 0.5, carModel.position.z + (cL/2 + 2.0)); 
                 camera.lookAt(carModel.position.x * 0.5, cH * 0.5, -10);
                 camera.rotation.z = gForce * 0.08; // G-force lean
                 camera.position.y += Math.sin(trackOffset * 10) * 0.02; // Track bumps
@@ -555,7 +555,7 @@
             }
             score = 0;
             speed = 0;
-            camera.position.set(0, 1.2, 0.5);
+            camera.position.set(0, (window.carHeight||1)+0.5, (window.carLength||4)/2 + 2.0);
             document.getElementById('game-over').style.display = 'none';
         }
         document.getElementById('restart-btn').onclick = restart;
