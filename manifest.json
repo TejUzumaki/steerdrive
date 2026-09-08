@@ -1,8 +1,8 @@
 {
-  "name": "AeroSteer Arena",
-  "short_name": "AeroArena",
+  "name": "P2P Velocity Anime",
+  "short_name": "P2P Velocity",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#87ceeb",
-  "theme_color": "#05050a"
+  "background_color": "#05050a",
+  "theme_color": "#ff9966"
 }

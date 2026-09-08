@@ -1,4 +1,4 @@
-const CACHE_NAME = 'f1-arena-v1';
+const CACHE_NAME = 'f1-p2p-v1';
 const ASSETS = [
   './',
   './index.html',

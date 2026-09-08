@@ -3,75 +3,337 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AeroSteer Anime</title>
+    <title>P2P VELOCITY ANIME</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+    </script>
     <style>
-        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; box-sizing: border-box; margin: 0; padding: 0; }
-        :root { --primary: #ff0040; --secondary: #00ffff; --bg: #ff9966; }
-        body { background: var(--bg); overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
-        #video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1; }
-        #three-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
-        /* 50% bigger than previous (was max 52px, now max 78px) */
-        #wheel-container { 
-            position: fixed; 
-            width: clamp(48px, 13.5vw, 78px); 
-            height: clamp(48px, 13.5vw, 78px); 
-            right: 18px; 
-            bottom: 18px; 
-            left: auto; 
-            top: auto; 
-            z-index: 1000; 
-            pointer-events: none; 
+        :root {
+            --bg: #000000;
+            --panel: #0a0a0a;
+            --border: #2a2a2a;
+            --text: #ffffff;
+            --grey: #777777;
+            --red: #ff0033;
+            --blue: #00aaff;
+            --sand: #A87C50;
+            --green: #576f00;
         }
-        #wheel-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.7)); transition: transform 0.05s linear; }
-        #hand-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        html, body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; overflow: hidden; touch-action: none; width: 100%; height: 100%; }
+
+        .clip-corner { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+
+        #game-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; display: block; }
+
+        #ui-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; pointer-events: none; }
+        #ui-layer > * { pointer-events: auto; }
+
+        /* Hide game UI by default until race starts */
+        #match-log, #controls, #speed-tach, .status-indicator, #steer-zone, #minimap, #voice-controls, #honk-btn, #nos-btn { display: none; }
         
-        #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; }
-        .spinner { border: 2px solid rgba(255, 0, 64, 0.2); border-top: 2px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        #load-text { color: #666; font-size: 12px; letter-spacing: 2px; }
+        #match-log {
+            position: absolute; top: 16px; left: 16px;
+            background: rgba(10, 10, 10, 0.85); border: 1px solid var(--border);
+            padding: 12px 16px; min-width: 180px;
+            backdrop-filter: blur(4px);
+        }
+        #match-log h3 { font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+        .log-row { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 4px; }
+        .log-row span:first-child { color: var(--grey); }
+        .log-row span:last-child { color: var(--text); font-weight: 700; }
+
+        /* MAIN MENU OVERLAY */
+        #menu-overlay {
+            position: fixed; top: 0; right: 0; width: 100%; max-width: 380px; height: 100%;
+            background: transparent; 
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 200; padding: 32px;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #menu-overlay.hidden { transform: translateX(120%); }
+        .menu-content { width: 100%; display: flex; flex-direction: column; gap: 16px; align-items: flex-end; }
+        .menu-title { font-size: 36px; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 8px; line-height: 0.9; text-align: right; text-shadow: 2px 2px 0px rgba(0,0,0,0.8); }
+        .menu-subtitle { font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 24px; font-family: 'JetBrains Mono', monospace; text-align: right; }
+        
+        .menu-btn { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #000000; color: #ffffff; border: 1px solid var(--border); padding: 18px 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; cursor: pointer; width: 100%; transition: background 0.2s, border-color 0.2s; }
+        .menu-btn:hover { border-color: var(--text); }
+        .menu-btn:active { background: #222; }
+        .menu-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+
+        .menu-btn.secondary { background: #222; color: #fff; }
+        
+        .menu-panel { background: #000000; border: 1px solid var(--border); padding: 16px; margin-top: 8px; width: 100%; display: none; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+        .menu-panel.active { display: block; }
+        .menu-input { width: 100%; background: #111; border: 1px solid var(--border); color: var(--text); padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 16px; text-align: center; margin-bottom: 12px; letter-spacing: 2px; text-transform: uppercase; }
+        .menu-input:focus { outline: none; border-color: var(--text); }
+        
+        .code-display { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
+        .copy-btn { background: var(--border); color: var(--text); border: none; padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .copy-btn:active { background: var(--grey); }
+        .copy-btn svg { width: 20px; height: 20px; }
+        .host-status { font-size: 10px; color: var(--grey); margin-top: 8px; text-transform: uppercase; text-align: center; font-family: 'JetBrains Mono', monospace; }
+
+        /* READY SCREEN */
+        #ready-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 250; display: none;
+            flex-direction: column; align-items: center; justify-content: center; padding: 32px;
+        }
+        #ready-screen.active { display: flex; }
+        .ready-title { font-size: 32px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: var(--blue); }
+        .ready-text { font-size: 12px; color: var(--grey); margin-bottom: 32px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+        .ready-btn { background: var(--text); color: var(--bg); border: none; padding: 20px 48px; font-weight: 700; text-transform: uppercase; font-size: 16px; cursor: pointer; margin-bottom: 24px; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+
+        /* INCOMING CALL MODAL */
+        #call-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 300; display: none;
+            flex-direction: column; align-items: center; justify-content: center; padding: 32px;
+        }
+        #call-modal.active { display: flex; }
+        .call-title { font-size: 24px; font-weight: 700; text-transform: uppercase; margin-bottom: 32px; }
+        .call-btns { display: flex; gap: 24px; }
+        .call-btn { width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .call-btn.accept { background: #00ff00; color: #000; }
+        .call-btn.reject { background: #ff0000; color: #fff; }
+        .call-btn svg { width: 32px; height: 32px; }
+
+        /* COUNTDOWN */
+        #countdown-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 150; pointer-events: none; }
+        #countdown-text { font-size: 120px; font-weight: 700; color: var(--text); text-shadow: 0 0 20px rgba(255,255,255,0.5); opacity: 0; transition: opacity 0.2s; font-family: 'Space Grotesk', sans-serif; letter-spacing: 4px; }
+
+        /* CONTROLS */
+        #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 200px; display: flex; justify-content: space-between; align-items: flex-end; padding: 24px; pointer-events: none; }
+        #pedals { display: flex; gap: 16px; pointer-events: auto; }
+        .pedal-btn { width: 92px; height: 92px; border: 1px solid var(--border); background: rgba(10,10,10,0.65); color: var(--text); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; letter-spacing: 2px; transition: background 0.05s, color 0.05s; }
+        .pedal-btn svg { width: 32px; height: 32px; }
+        .pedal-btn.gas.active { background: #88ff88; color: #000; border-color: #88ff88; }
+        .pedal-btn.brk.active { background: #ff6666; color: #000; border-color: #ff6666; }
+
+        #right-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: auto; }
+        .small-btn { width: 56px; height: 56px; border: 1px solid var(--border); background: rgba(10,10,10,0.65); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .small-btn:active { background: var(--text); color: var(--bg); }
+        .small-btn svg { width: 24px; height: 24px; }
+
+        #steer-zone { position: absolute; top: 0; right: 0; width: 60%; height: 100%; z-index: 10; touch-action: none; }
+        
+        .status-indicator { position: absolute; top: 16px; left: 16px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--grey); text-align: left; text-transform: uppercase; background: rgba(10,10,10,0.7); padding: 8px 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; background: var(--red); animation: blink 1s infinite; }
+        .status-dot.connected { background: var(--blue); animation: none; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* MINIMAP */
+        #minimap { position: absolute; top: 16px; right: 16px; width: 150px; height: 150px; border: 1px solid var(--border); background: #000; z-index: 15; }
+
+        /* VOICE CONTROLS (Below Minimap) */
+        #voice-controls { position: absolute; top: 180px; right: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 20; }
+        .voice-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.7); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .voice-btn svg { width: 20px; height: 20px; }
+        .voice-btn.call { background: #00aaff; color: #000; }
+        .voice-btn.mute { background: #ffaa00; color: #000; }
+        .voice-btn.end { background: #ff3333; color: #fff; }
+
+        /* ACTION BUTTONS (Honk & NOS) */
+        #action-buttons { position: absolute; bottom: 24px; right: 100px; display: flex; flex-direction: column; gap: 12px; z-index: 20; }
+        .action-btn { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.7); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .action-btn svg { width: 24px; height: 24px; }
+        .action-btn.nos { background: #00aaff; color: #000; }
+        .action-btn.nos:active { background: #fff; }
+
+        #speed-tach { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--border); padding: 8px 24px; display: flex; align-items: baseline; gap: 8px; pointer-events: none; z-index: 15; }
+        #speed-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
+        #speed-unit { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--grey); text-transform: uppercase; }
+
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; }
+        .spinner { border: 2px solid rgba(255, 0, 64, 0.2); border-top: 2px solid var(--red); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #load-text { color: #666; font-size: 12px; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="loader">
         <div class="spinner"></div>
-        <div id="load-text">INITIALIZING ANIME HIGHWAY...</div>
-    </div>
-    
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="three-canvas"></canvas>
-    
-    <div id="wheel-container">
-        <img id="wheel-svg" src="wheel.svg" alt="Steering Wheel">
-        <canvas id="hand-overlay" width="128" height="128"></canvas>
+        <div id="load-text">INITIALIZING ANIME WORLD...</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
-    
-    <script type="importmap">
-    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/" } }
-    </script>
-    
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="steer-zone"></div>
+
+        <div class="status-indicator clip-corner">
+            P2P<span class="status-dot" id="status-dot"></span>
+        </div>
+
+        <div id="match-log" class="clip-corner">
+            <h3>Tactical Log</h3>
+            <div class="log-row"><span>ROOM</span><span id="log-room">------</span></div>
+            <div class="log-row"><span>CP</span><span id="log-cp">0/4</span></div>
+            <div class="log-row"><span>STATE</span><span id="log-state">IDLE</span></div>
+        </div>
+
+        <canvas id="minimap" width="150" height="150"></canvas>
+
+        <div id="voice-controls">
+            <div class="voice-btn call" id="call-btn" title="Call">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div class="voice-btn mute" id="mute-btn" style="display:none;" title="Mute">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </div>
+            <div class="voice-btn end" id="end-call-btn" style="display:none;" title="End Call">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+            </div>
+        </div>
+
+        <div id="countdown-overlay"><div id="countdown-text">3</div></div>
+
+        <div id="speed-tach" class="clip-corner">
+            <div id="speed-val">0</div>
+            <div id="speed-unit">KM/H</div>
+        </div>
+
+        <div id="action-buttons">
+            <div id="nos-btn" class="action-btn nos" title="Nitro">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div id="honk-btn" class="action-btn" title="Honk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10v4h4l5 4V6L7 10H3z"/><path d="M15 8a5 5 0 0 1 0 8"/></svg>
+            </div>
+        </div>
+
+        <div id="controls">
+            <div id="pedals">
+                <div id="gas-btn" class="pedal-btn gas clip-corner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </div>
+                <div id="brk-btn" class="pedal-btn brk clip-corner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+                </div>
+            </div>
+            <div id="right-controls">
+                <div id="camera-btn" class="small-btn clip-corner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="menu-overlay">
+        <div class="menu-content">
+            <div class="menu-title">P2P<br>VELOCITY</div>
+            <div class="menu-subtitle">Anime Highway</div>
+
+            <input type="text" id="username-input" class="menu-input" maxlength="12" placeholder="ENTER NAME" value="PLAYER">
+            
+            <button class="menu-btn" id="btn-host">
+                HOST LOBBY
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+            </button>
+            
+            <div class="menu-panel" id="host-container">
+                <div class="code-display">
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:24px; letter-spacing:4px; color:var(--text);" id="room-display">------</div>
+                    <button class="copy-btn clip-corner" id="btn-copy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+                <div class="host-status" id="host-status">Waiting for opponent...</div>
+            </div>
+
+            <button class="menu-btn" id="btn-join" style="margin-top: 16px;">
+                JOIN LOBBY
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+
+            <div class="menu-panel" id="join-container">
+                <input type="text" id="room-input" class="menu-input" maxlength="6" placeholder="CODE">
+                <button class="menu-btn" id="btn-connect" style="background:#fff; color:#000; border-color:#fff;">
+                    CONNECT
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </div>
+
+            <button class="menu-btn secondary" id="btn-back" style="display:none; margin-top: 16px;">
+                BACK
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- READY SCREEN -->
+    <div id="ready-screen">
+        <div class="ready-title">FRIEND CONNECTED</div>
+        <div class="ready-text">Peer connection established. Ready to race?</div>
+        <button class="ready-btn" id="enter-world-btn">ENTER WORLD</button>
+    </div>
+
+    <!-- INCOMING CALL MODAL -->
+    <div id="call-modal">
+        <div class="call-title">INCOMING VOICE CALL</div>
+        <div class="call-btns">
+            <div class="call-btn reject" id="reject-call-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+            </div>
+            <div class="call-btn accept" id="accept-call-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        const video = document.getElementById('video');
-        const handOverlay = document.getElementById('hand-overlay');
-        const handCtx = handOverlay.getContext('2d');
-        let W = window.innerWidth, H = window.innerHeight;
+        // --- GLOBAL STATE & CONFIG ---
+        const Config = { Accel: 0.018, MaxSpeed: 0.85, Friction: 0.985, Brake: 0.92, Wheelbase: 3.0, MaxSteerAngle: 0.45, Checkpoints: 4, BoostSpeed: 1.5, BoostAccel: 0.05 };
+        let isHost = false, peer = null, con = null, roomCode = '';
+        let gameStarted = false, cameraMode = 'third', cutsceneActive = false, menuActive = true;
+        let isReady = false, peerIsReady = false;
+        let localStream = null, remoteAudio = new Audio(), activeCall = null, isMuted = false;
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let localName = 'PLAYER', remoteName = 'RIVAL';
+        let activeCutsceneInterval = null;
+        let isBoosting = false, boostFuel = 100;
 
-        // --- Three.js Scene ---
+        // --- AUTO FULLSCREEN HELPER ---
+        function enterFullscreen() {
+            const el = document.documentElement;
+            const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (req) { try { req.call(el).catch(()=>{}); } catch(e) {} }
+        }
+
+        document.addEventListener('touchstart', (e) => { if (!document.fullscreenElement && gameStarted) enterFullscreen(); }, { passive: true });
+        document.addEventListener('click', (e) => { if (!document.fullscreenElement && gameStarted) enterFullscreen(); });
+
+        // --- THREE.JS SETUP ---
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
         const scene = new THREE.Scene();
         
         // Anime Sky Atmosphere (Sunset Gradient)
         const skyGeo = new THREE.SphereGeometry(500, 32, 15);
         const skyMat = new THREE.ShaderMaterial({
             uniforms: { 
-                topColor: { value: new THREE.Color(0x6a5acd) }, // Purple top
-                bottomColor: { value: new THREE.Color(0xff5e62) }, // Orange/Pink bottom
+                topColor: { value: new THREE.Color(0x6a5acd) }, 
+                bottomColor: { value: new THREE.Color(0xff5e62) }, 
                 offset: { value: 33 }, 
                 exponent: { value: 0.8 } 
             },
@@ -82,201 +344,572 @@
         scene.add(new THREE.Mesh(skyGeo, skyMat));
         scene.fog = new THREE.Fog(0xff9966, 150, 600);
 
-        const camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), antialias: true });
-        renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2500);
+        camera.position.set(0, 15, 20); camera.lookAt(0, 0, 0);
 
-        // Anime Lighting (High contrast, warm sun)
+        // Anime Lighting
         scene.add(new THREE.AmbientLight(0xffe5cc, 1.0));
         const sun = new THREE.DirectionalLight(0xffcc88, 1.8);
         sun.position.set(50, 100, 50); sun.castShadow = true;
         sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
         scene.add(sun);
 
-        // --- Massive Straight Highway ---
-        // Vibrant anime grass
-        const groundGeo = new THREE.PlaneGeometry(2000, 2000);
+        // --- TERRAIN ---
+        const groundGeo = new THREE.PlaneGeometry(8000, 8000, 50, 50);
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x4a8620, roughness: 1.0 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+        ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+        scene.add(ground);
 
-        // Highway track (massive rectangle to feel like a straight path)
-        const trackGeo = new THREE.PlaneGeometry(20, 2000);
-        const trackMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8 });
-        const trackMesh = new THREE.Mesh(trackGeo, trackMat);
-        trackMesh.rotation.x = -Math.PI / 2; trackMesh.position.z = -800; trackMesh.position.y = 0.01; trackMesh.receiveShadow = true; scene.add(trackMesh);
-        
-        // Road Dashes (Anime style glowing)
-        const dashMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
-        for(let i = -1000; i < 1000; i += 15) {
-            const dash = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 6), dashMat);
-            dash.position.set(0, 0.02, i); scene.add(dash);
-        }
-        
-        // Road Edges (Glowing pink/cyan)
-        const edgeMat = new THREE.MeshStandardMaterial({ color: 0xff0040, emissive: 0xff0040, emissiveIntensity: 1.0 });
-        const edgeL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 2000), edgeMat);
-        edgeL.position.set(-10, 0.1, -800); scene.add(edgeL);
-        const edgeR = edgeL.clone(); edgeR.position.x = 10; scene.add(edgeR);
+        // --- STARTING LINE ---
+        const c = document.createElement("canvas"); c.width = c.height = 16;
+        const x = c.getContext("2d"); x.fillStyle = "#000"; x.fillRect(0, 0, 16, 16);
+        x.fillStyle = "#fff"; x.fillRect(0, 0, 8, 8); x.fillRect(8, 8, 8, 8);
+        const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(7, 1);
+        const startLineMat = new THREE.MeshBasicMaterial({ map: tex });
+        const startLineGeo = new THREE.PlaneGeometry(14, 2);
+        const startLine = new THREE.Mesh(startLineGeo, startLineMat);
+        startLine.rotation.x = -Math.PI / 2; startLine.position.set(0, 0.02, 5);
+        scene.add(startLine);
 
-        // Anime Cherry Blossom Trees (Simple stylized)
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2c10 });
-        const leavesMat = new THREE.MeshStandardMaterial({ color: 0xffb7c5, emissive: 0xffb7c5, emissiveIntensity: 0.3 });
-        for(let i = -1000; i < 1000; i += 40) {
-            for(let side = -1; side <= 1; side += 2) {
-                const tree = new THREE.Group();
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 4, 8), trunkMat);
-                trunk.position.y = 2; tree.add(trunk);
-                const leaves = new THREE.Mesh(new THREE.SphereGeometry(2.5, 8, 8), leavesMat);
-                leaves.position.y = 5; tree.add(leaves);
-                tree.position.set(side * 15, 0, i);
-                scene.add(tree);
-            }
+        // --- GREEN PATCHES ---
+        const greenPatches = [];
+        const patchMat = new THREE.MeshStandardMaterial({ color: 0x3a6a10, roughness: 1.0 });
+        for(let i=0; i<40; i++) {
+            const r = 40 + Math.abs(Math.sin(i * 12.9898)) * 40;
+            const px = (Math.sin(i * 78.233) * 0.5) * 2000;
+            const pz = (Math.cos(i * 43.123) * 0.5) * 2000;
+            if (Math.sqrt(px*px + pz*pz) < 40) continue; 
+            const patchGeo = new THREE.CircleGeometry(r, 8);
+            const patch = new THREE.Mesh(patchGeo, patchMat);
+            patch.rotation.x = -Math.PI / 2; patch.position.set(px, 0.02, pz);
+            scene.add(patch); greenPatches.push({ x: px, z: pz, r });
         }
 
-        // --- F1 Car ---
-        const loader = new GLTFLoader();
-        let carModel = null, carWheels = [];
+        // --- ANIME CHERRY BLOSSOM TREES ---
+        function createProvidedTree() {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 4, 8), new THREE.MeshStandardMaterial({ color: 0x4a2c10 }));
+            trunk.position.y = 2; tree.add(trunk);
+            const leaves = new THREE.Mesh(new THREE.SphereGeometry(2.5, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffb7c5, emissive: 0xffb7c5, emissiveIntensity: 0.3 }));
+            leaves.position.y = 5; tree.add(leaves);
+            return tree;
+        }
+
+        const treePositions = [];
+        const treeTemplate = createProvidedTree();
+        for (let i = 0; i < 100; i++) {
+            const patch = greenPatches[i % greenPatches.length];
+            const angle = Math.sin(i * 1.1) * Math.PI;
+            const dist = Math.abs(Math.cos(i * 2.2)) * patch.r;
+            const tx = patch.x + Math.cos(angle) * dist;
+            const tz = patch.z + Math.sin(angle) * dist;
+            const tree = treeTemplate.clone(); tree.scale.set(0.6, 0.6, 0.6);
+            tree.position.set(tx, 0, tz); tree.rotation.y = Math.abs(Math.sin(i * 5.5)) * Math.PI;
+            scene.add(tree); treePositions.push({x: tx, z: tz});
+        }
+
+        // --- CHECKPOINTS ---
+        const cpPositions = [ new THREE.Vector3(100, 0, 200), new THREE.Vector3(-200, 0, 500), new THREE.Vector3(300, 0, 900), new THREE.Vector3(0, 0, 1400) ];
+        const checkpoints = [];
+        cpPositions.forEach((p, i) => {
+            const cpGeo = new THREE.CylinderGeometry(8, 8, 16, 16, 1, true);
+            const cpMat = new THREE.MeshBasicMaterial({ color: 0xff3333, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+            const cp = new THREE.Mesh(cpGeo, cpMat); cp.position.set(p.x, 8, p.z); cp.visible = (i === 0); scene.add(cp);
+            checkpoints.push({ mesh: cp, pos: p, passed: false, idx: i });
+        });
+
+        // --- CAR LOADING (GLTF) ---
+        const hostCar = { group: new THREE.Group(), frontWheels: [] };
+        const clientCar = { group: new THREE.Group(), frontWheels: [] };
+        hostCar.group.position.set(2, 0, 0); clientCar.group.position.set(-2, 0, 0);
+        scene.add(hostCar.group); scene.add(clientCar.group);
+
         let carHeight = 1.0, carLength = 4.0, carWidth = 1.0;
-        // Default forward is +Z to fix the "facing camera" issue (camera will be behind at -Z)
-        let carForward = new THREE.Vector3(0, 0, 1); 
-
-        loader.load('assets/scene.gltf', (gltf) => {
-            carModel = gltf.scene; carModel.scale.set(1, 1, 1); 
-            carModel.traverse(obj => { if(obj.isMesh) { obj.castShadow = true; if(obj.name.toLowerCase().includes('wheel')||obj.name.toLowerCase().includes('tire')) carWheels.push(obj); } });
+        const gltfLoader = new GLTFLoader();
+        
+        gltfLoader.load('assets/scene.gltf', (gltf) => {
+            const baseModel = gltf.scene;
             
-            let box = new THREE.Box3().setFromObject(carModel); 
+            // Host Car
+            const hostModel = baseModel.clone();
+            hostModel.scale.set(1, 1, 1);
+            hostModel.traverse(obj => { 
+                if(obj.isMesh) { 
+                    obj.castShadow = true; 
+                    if(obj.name.toLowerCase().includes('wheel')||obj.name.toLowerCase().includes('tire')) hostCar.frontWheels.push(obj); 
+                } 
+            });
+            hostCar.group.add(hostModel);
+            
+            // Client Car (Blue Tinted)
+            const clientModel = baseModel.clone();
+            clientModel.scale.set(1, 1, 1);
+            clientModel.traverse(obj => { 
+                if(obj.isMesh) { 
+                    obj.castShadow = true; 
+                    if(obj.name.toLowerCase().includes('wheel')||obj.name.toLowerCase().includes('tire')) clientCar.frontWheels.push(obj);
+                    if(obj.material && obj.material.color) {
+                        obj.material = obj.material.clone();
+                        obj.material.color.lerp(new THREE.Color(0x00aaff), 0.5);
+                    }
+                } 
+            });
+            clientCar.group.add(clientModel);
+            
+            let box = new THREE.Box3().setFromObject(hostCar.group); 
             let size = new THREE.Vector3(); box.getSize(size);
             carLength = Math.max(size.z, 1);
             carHeight = Math.max(size.y, 1);
-            carWidth = Math.max(size.x, 1);
             
-            // Start on the track, facing +Z (forward)
-            carModel.position.set(0, 0, 0);
-            scene.add(carModel);
-            
+            applyNameTags(); 
             document.getElementById('loader').style.display = 'none';
+        }, undefined, (err) => { 
+            console.error("GLTF Load Error:", err);
+            document.getElementById('load-text').innerText = "MODEL LOAD FAILED";
         });
 
-        // --- Game State ---
-        let speed = 50; // Smooth constant speed
-        let steeringInput = 0, targetSteering = 0;
-        let currentWheelRotation = 0, targetWheelRotation = 0;
-
-        // --- MediaPipe ---
-        let hands;
-        function initHands() {
-            hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}` });
-            hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
-            hands.onResults(onResults); startCamera();
+        // --- NAME TAGS ---
+        function makeTextSprite(message, color) {
+            const c = document.createElement('canvas'); const ctx = c.getContext('2d');
+            c.width = 256; c.height = 64; ctx.font = "bold 32px Space Grotesk";
+            ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0,0,256,64);
+            ctx.fillStyle = color; ctx.textAlign = "center"; ctx.fillText(message, 128, 40);
+            const texture = new THREE.CanvasTexture(c); const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(material); sprite.scale.set(4, 1, 1); sprite.position.set(0, 2.5, 0);
+            return sprite;
         }
-        async function startCamera() {
-            try { const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } }); video.srcObject = stream; await video.play(); processFrame(); }
-            catch(e) { console.error(e); }
-        }
-        async function processFrame() { if (video.readyState >= 2) await hands.send({ image: video }); requestAnimationFrame(processFrame); }
+        let hostTag = makeTextSprite(localName, "#ff0033");
+        let clientTag = makeTextSprite(remoteName, "#00aaff");
 
-        function onResults(results) {
-            handCtx.clearRect(0, 0, handOverlay.width, handOverlay.height);
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
-                const handsArr = results.multiHandLandmarks;
-                let h0 = handsArr[0], h1 = handsArr[1];
-                if (h0[0].x > h1[0].x) { h1 = handsArr[0]; h0 = handsArr[1]; }
-                
-                const dx = h1[0].x - h0[0].x, dy = h1[0].y - h0[0].y;
-                const angle = Math.atan2(dy, dx);
-                
-                targetSteering = Math.abs(angle) < 0.1 ? 0 : Math.max(-1, Math.min(1, -angle / (Math.PI / 4)));
-                targetWheelRotation = targetSteering * (Math.PI / 2);
-                
-                drawHandsOnWheel(handsArr);
-            } else { 
-                targetSteering = 0; 
-                targetWheelRotation = 0; 
-            }
+        function applyNameTags() {
+            hostCar.group.remove(hostTag); clientCar.group.remove(clientTag);
+            hostTag = makeTextSprite(isHost ? localName : remoteName, "#ff0033");
+            clientTag = makeTextSprite(isHost ? remoteName : localName, "#00aaff");
+            hostCar.group.add(hostTag); clientCar.group.add(clientTag);
         }
 
-        function drawHandsOnWheel(handsArr) {
-            const cx = handOverlay.width / 2, cy = handOverlay.height / 2;
-            let minX = 1, maxX = 0, minY = 1, maxY = 0;
-            handsArr.forEach(h => h.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }));
-            let scale = 80 / Math.max(0.01, Math.max(maxX - minX, maxY - minY)); // Adjusted for new wheel size
-            let midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
-            handCtx.save(); handCtx.translate(cx, cy); handCtx.rotate(currentWheelRotation);
-            const connections = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-            handsArr.forEach(h => {
-                handCtx.strokeStyle = 'rgba(0, 255, 255, 0.9)'; handCtx.lineWidth = 3; handCtx.shadowColor = '#00ffff'; handCtx.shadowBlur = 4; handCtx.beginPath();
-                connections.forEach(([a, b]) => { handCtx.moveTo((h[a].x - midX) * scale, (h[a].y - midY) * scale); handCtx.lineTo((h[b].x - midX) * scale, (h[b].y - midY) * scale); });
-                handCtx.stroke();
-                handCtx.fillStyle = '#ff0040'; handCtx.shadowColor = '#ff0040'; handCtx.shadowBlur = 3;
-                h.forEach(pt => { handCtx.beginPath(); handCtx.arc((pt.x - midX) * scale, (pt.y - midY) * scale, Math.max(1, 2.5 - (pt.z + 0.1) * 10), 0, Math.PI * 2); handCtx.fill(); });
+        function spawnState(sideOffset) { return { x: sideOffset, z: 0, ry: 0, v: 0, steer: 0, cp: 0, finished: false }; }
+        let hostState = spawnState(2.0); let clientState = spawnState(-2.0);
+
+        // --- UI REFS ---
+        const ui = {
+            menu: document.getElementById('menu-overlay'),
+            btnHost: document.getElementById('btn-host'), btnJoin: document.getElementById('btn-join'), btnBack: document.getElementById('btn-back'),
+            joinCont: document.getElementById('join-container'), hostCont: document.getElementById('host-container'),
+            roomInput: document.getElementById('room-input'), btnConnect: document.getElementById('btn-connect'),
+            roomDisplay: document.getElementById('room-display'), btnCopy: document.getElementById('btn-copy'),
+            hostStatus: document.getElementById('host-status'), usernameInput: document.getElementById('username-input'),
+            logRoom: document.getElementById('log-room'), logCp: document.getElementById('log-cp'), logState: document.getElementById('log-state'),
+            countdownText: document.getElementById('countdown-text'), statusDot: document.getElementById('status-dot'),
+            speedVal: document.getElementById('speed-val'), cameraBtn: document.getElementById('camera-btn'),
+            gasBtn: document.getElementById('gas-btn'), brkBtn: document.getElementById('brk-btn'),
+            controls: document.getElementById('controls'), speedTach: document.getElementById('speed-tach'),
+            matchLog: document.getElementById('match-log'), statusInd: document.querySelector('.status-indicator'),
+            steerZone: document.getElementById('steer-zone'),
+            readyScreen: document.getElementById('ready-screen'), enterWorldBtn: document.getElementById('enter-world-btn'),
+            minimap: document.getElementById('minimap'), minimapCtx: document.getElementById('minimap').getContext('2d'),
+            honkBtn: document.getElementById('honk-btn'), nosBtn: document.getElementById('nos-btn'),
+            callModal: document.getElementById('call-modal'), acceptCallBtn: document.getElementById('accept-call-btn'), rejectCallBtn: document.getElementById('reject-call-btn'),
+            callBtn: document.getElementById('call-btn'), muteBtn: document.getElementById('mute-btn'), endCallBtn: document.getElementById('end-call-btn'),
+            voiceControls: document.getElementById('voice-controls')
+        };
+
+        function updateLog() {
+            ui.logRoom.textContent = roomCode || '------';
+            const localState = isHost ? hostState : clientState;
+            ui.logCp.textContent = `${localState.cp}/${Config.Checkpoints}`;
+            ui.logState.textContent = gameStarted ? 'RACING' : (cutsceneActive ? 'CUTSCENE' : 'IDLE');
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let res = '';
+            for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+            return res;
+        }
+
+        function showMainMenuButtons() {
+            ui.btnHost.style.display = 'flex'; ui.btnJoin.style.display = 'flex';
+            ui.btnBack.style.display = 'none';
+            ui.hostCont.classList.remove('active'); ui.joinCont.classList.remove('active');
+        }
+
+        function showBackButton() {
+            ui.btnHost.style.display = 'none'; ui.btnJoin.style.display = 'none';
+            ui.btnBack.style.display = 'flex';
+        }
+
+        ui.btnHost.onclick = () => {
+            enterFullscreen(); isHost = true; roomCode = generateRoomCode(); localName = ui.usernameInput.value.toUpperCase() || 'PLAYER';
+            ui.hostCont.classList.add('active'); showBackButton();
+            ui.roomDisplay.textContent = roomCode; updateLog();
+            try {
+                peer = new Peer(roomCode + '_host', { debug: 0 });
+                peer.on('open', () => { ui.statusDot.classList.remove('connected'); });
+                peer.on('error', (err) => { ui.hostStatus.textContent = "PEER ERROR: " + (err.type || 'unknown'); });
+                peer.on('connection', (conn) => { con = conn; setupConnection(); });
+                peer.on('call', (call) => { activeCall = call; ui.callModal.classList.add('active'); });
+            } catch(e) { ui.hostStatus.textContent = "NETWORK ERROR"; }
+        };
+
+        ui.btnJoin.onclick = () => { enterFullscreen(); ui.joinCont.classList.add('active'); showBackButton(); };
+        ui.btnBack.onclick = () => { showMainMenuButtons(); };
+
+        ui.btnCopy.onclick = () => {
+            const textToCopy = ui.roomDisplay.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    ui.hostStatus.textContent = "CODE COPIED TO CLIPBOARD";
+                    setTimeout(() => { ui.hostStatus.textContent = "Waiting for opponent..."; }, 2000);
+                }).catch(() => fallbackCopy(textToCopy));
+            } else fallbackCopy(textToCopy);
+        };
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); ui.hostStatus.textContent = "CODE COPIED"; } catch(e) {}
+            document.body.removeChild(ta); setTimeout(() => { ui.hostStatus.textContent = "Waiting for opponent..."; }, 2000);
+        }
+
+        ui.btnConnect.onclick = () => {
+            roomCode = ui.roomInput.value.toUpperCase().trim();
+            if (roomCode.length !== 6) { ui.roomInput.style.borderColor = 'var(--red)'; return; }
+            localName = ui.usernameInput.value.toUpperCase() || 'PLAYER';
+            updateLog(); isHost = false;
+            try {
+                peer = new Peer({ debug: 0 });
+                peer.on('open', () => { con = peer.connect(roomCode + '_host', { reliable: false }); setupConnection(); });
+                peer.on('error', (err) => { ui.hostStatus.textContent = "PEER ERROR: " + (err.type || 'unknown'); ui.hostCont.classList.add('active'); ui.hostStatus.style.color = 'var(--red)'; });
+                peer.on('call', (call) => { activeCall = call; ui.callModal.classList.add('active'); });
+            } catch(e) { ui.hostStatus.textContent = "NETWORK ERROR"; }
+        };
+
+        ui.cameraBtn.onclick = () => { cameraMode = cameraMode === 'third' ? 'first' : 'third'; };
+        ui.enterWorldBtn.onclick = () => {
+            enterFullscreen(); ui.readyScreen.classList.remove('active');
+            isReady = true; sendPacket({ type: 'ready', name: localName });
+            if (peerIsReady) checkReady();
+        };
+
+        function setupConnection() {
+            con.on('open', () => {
+                ui.statusDot.classList.add('connected'); ui.menu.classList.add('hidden'); menuActive = false;
+                ui.readyScreen.classList.add('active');
+                sendPacket({ type: 'name_sync', name: localName });
             });
-            handCtx.restore();
+            con.on('data', (data) => handlePacket(data));
+            con.on('close', () => { setTimeout(() => location.reload(), 1500); });
+            con.on('error', () => {});
         }
 
-        // --- Game Loop ---
-        const clock = new THREE.Clock();
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = Math.min(0.05, clock.getDelta());
-            const raceTime = clock.elapsedTime;
-            
-            if (carModel) {
-                // Smooth Steering
-                steeringInput += (targetSteering - steeringInput) * 0.1;
-                currentWheelRotation += (targetWheelRotation - currentWheelRotation) * 0.1;
-                document.getElementById('wheel-svg').style.transform = `rotate(${currentWheelRotation}rad)`;
-                
-                // Car Physics (No jitter, direct forward mapping)
-                // Car turns based on steering input
-                carModel.rotation.y += steeringInput * delta * 0.8;
-                
-                // Calculate forward vector strictly based on car's rotation
-                // If car defaults to +Z, forward is (0,0,1) rotated by Y
-                const forward = new THREE.Vector3(0, 0, 1).applyEuler(carModel.rotation);
-                
-                // Move car smoothly
-                carModel.position.addScaledVector(forward, speed * delta);
-                
-                // Keep car on the massive highway (soft boundaries, no snapping)
-                const limit = 9.5; // Road is 20 wide, limit at 9.5
-                if (carModel.position.x > limit) carModel.position.x = limit;
-                if (carModel.position.x < -limit) carModel.position.x = -limit;
-                
-                // Wheels rotation
-                carWheels.forEach(w => w.rotation.x += speed * delta * 0.5);
-                
-                // --- TRUE THIRD-PERSON CHASE CAMERA ---
-                const cameraTarget = new THREE.Vector3();
-                cameraTarget.copy(carModel.position);
-                cameraTarget.y += carHeight * 0.35;
-                
-                // Camera is behind the car (reverse of forward vector)
-                const back = forward.clone().negate();
-                const desiredCameraPosition = new THREE.Vector3().copy(carModel.position);
-                desiredCameraPosition.addScaledVector(back, carLength * 2.5 + 5.0); // Move back by car length
-                desiredCameraPosition.y += carHeight * 1.5 + 1.5; // Move up
-                
-                // Subtle shake
-                const shakeStrength = 0.05;
-                desiredCameraPosition.x += Math.sin(raceTime * 31.0) * shakeStrength;
-                desiredCameraPosition.y += Math.cos(raceTime * 37.0) * shakeStrength * 0.6;
-                
-                // Smooth Lerp
-                camera.position.lerp(desiredCameraPosition, 1 - Math.exp(-5.0 * delta));
-                camera.lookAt(cameraTarget);
+        function sendPacket(pkt) { if (con && con.open) { try { con.send(pkt); } catch (e) {} } }
+
+        function handlePacket(pkt) {
+            if (pkt.type === 'state') {
+                if (isHost) { clientState.x = pkt.x; clientState.z = pkt.z; clientState.ry = pkt.ry; clientState.v = pkt.v; }
+                else { hostState.x = pkt.x; hostState.z = pkt.z; hostState.ry = pkt.ry; hostState.v = pkt.v; }
+            } else if (pkt.type === 'ready') {
+                peerIsReady = true; remoteName = pkt.name || 'RIVAL'; applyNameTags();
+                if (isReady) checkReady();
+            } else if (pkt.type === 'name_sync') {
+                remoteName = pkt.name || 'RIVAL'; applyNameTags();
+            } else if (pkt.type === 'race_start') {
+                if (cutsceneActive && activeCutsceneInterval) {
+                    clearInterval(activeCutsceneInterval); cutsceneActive = false;
+                    const ls = isHost ? hostState : clientState;
+                    camera.position.set(ls.x - Math.sin(ls.ry) * 8, 4, ls.z - Math.cos(ls.ry) * 8);
+                    camera.lookAt(ls.x, 1, ls.z);
+                }
+                startCountdown();
+            } else if (pkt.type === 'finish') { endMatch(false); }
+            else if (pkt.type === 'reset_race') { resetRacePositions(); if (isHost) startCutscene(); }
+            else if (pkt.type === 'honk') { playHonk(); }
+            else if (pkt.type === 'nitro') { isBoosting = pkt.active; }
+        }
+
+        function checkReady() {
+            if(isReady && peerIsReady && !gameStarted && !cutsceneActive) {
+                ui.readyScreen.classList.remove('active');
+                ui.controls.style.display = 'flex'; ui.speedTach.style.display = 'flex';
+                ui.matchLog.style.display = 'block'; ui.statusInd.style.display = 'flex';
+                ui.steerZone.style.display = 'block'; ui.minimap.style.display = 'block';
+                ui.voiceControls.style.display = 'flex'; ui.honkBtn.style.display = 'flex'; ui.nosBtn.style.display = 'flex';
+                startCutscene();
             }
+        }
+
+        // --- VOICE CALL LOGIC ---
+        async function startCall() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                activeCall = peer.call(con.peer, localStream);
+                activeCall.on('stream', (remoteStream) => { remoteAudio.srcObject = remoteStream; remoteAudio.play(); });
+                updateCallUI(true);
+            } catch (e) { alert("Microphone access denied or failed."); }
+        }
+
+        ui.acceptCallBtn.onclick = async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                activeCall.answer(localStream);
+                activeCall.on('stream', (remoteStream) => { remoteAudio.srcObject = remoteStream; remoteAudio.play(); });
+                ui.callModal.classList.remove('active'); updateCallUI(true);
+            } catch (e) { alert("Microphone access denied."); ui.callModal.classList.remove('active'); }
+        };
+
+        ui.rejectCallBtn.onclick = () => { if(activeCall) activeCall.close(); ui.callModal.classList.remove('active'); };
+
+        function toggleMute() { if(localStream) { localStream.getAudioTracks()[0].enabled = isMuted; isMuted = !isMuted; } }
+
+        function endCall() {
+            if(activeCall) activeCall.close();
+            if(localStream) localStream.getTracks().forEach(t => t.stop());
+            localStream = null; remoteAudio.srcObject = null; updateCallUI(false);
+        }
+
+        function updateCallUI(active) {
+            let display = active ? 'flex' : 'none';
+            let muteDisp = active ? 'flex' : 'none';
+            ui.callBtn.style.display = active ? 'none' : 'flex';
+            ui.muteBtn.style.display = muteDisp;
+            ui.endCallBtn.style.display = display;
+        }
+        ui.callBtn.onclick = startCall; ui.muteBtn.onclick = toggleMute; ui.endCallBtn.onclick = endCall;
+
+        // --- HONK LOGIC ---
+        function playHonk() {
+            let o = audioCtx.createOscillator(); let g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 400; o.type = "sawtooth";
+            g.gain.value = 0.1; o.start(); setTimeout(() => o.stop(), 200);
+        }
+        ui.honkBtn.onclick = () => { playHonk(); sendPacket({ type: 'honk' }); };
+
+        // --- NITRO LOGIC ---
+        function bindNitro() {
+            const start = (e) => { e.preventDefault(); isBoosting = true; sendPacket({ type: 'nitro', active: true }); };
+            const end = (e) => { if(e) e.preventDefault(); isBoosting = false; sendPacket({ type: 'nitro', active: false }); };
+            ui.nosBtn.addEventListener('touchstart', start, { passive: false });
+            ui.nosBtn.addEventListener('touchend', end, { passive: false });
+            ui.nosBtn.addEventListener('mousedown', start);
+            ui.nosBtn.addEventListener('mouseup', end);
+            ui.nosBtn.addEventListener('mouseleave', end);
+        }
+        bindNitro();
+
+        // --- CUTSCENE & MATCH FLOW ---
+        function startCutscene() {
+            cutsceneActive = true; updateLog(); let t = 0;
+            activeCutsceneInterval = setInterval(() => {
+                t += 0.05; const angle = t;
+                camera.position.x = Math.sin(angle) * 15; camera.position.z = Math.cos(angle) * 15; camera.position.y = 6;
+                camera.lookAt(0, 1, 0);
+                if (t >= Math.PI) {
+                    clearInterval(activeCutsceneInterval); cutsceneActive = false;
+                    const ls = isHost ? hostState : clientState;
+                    camera.position.set(ls.x - Math.sin(ls.ry) * 8, 4, ls.z - Math.cos(ls.ry) * 8);
+                    camera.lookAt(ls.x, 1, ls.z);
+                    if (isHost) { sendPacket({ type: 'race_start' }); startCountdown(); }
+                }
+            }, 16);
+        }
+
+        function startCountdown() {
+            let count = 3; ui.countdownText.style.opacity = 1; ui.countdownText.textContent = count;
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) ui.countdownText.textContent = count;
+                else if (count === 0) ui.countdownText.textContent = "GO";
+                else { clearInterval(interval); ui.countdownText.style.opacity = 0; gameStarted = true; updateLog(); }
+            }, 1000);
+        }
+
+        function resetRacePositions() {
+            hostState = spawnState(2.0); clientState = spawnState(-2.0);
+            checkpoints.forEach((cp, i) => { cp.passed = false; cp.mesh.visible = (i === 0); });
+            gameStarted = false; updateLog();
+        }
+
+        function endMatch(won) {
+            gameStarted = false; ui.countdownText.style.opacity = 1;
+            ui.countdownText.textContent = won ? "VICTORY" : "DEFEAT"; updateLog();
+            setTimeout(() => {
+                ui.countdownText.style.opacity = 0; resetRacePositions();
+                if (isHost) { sendPacket({ type: 'reset_race' }); startCutscene(); }
+            }, 4000);
+        }
+
+        // --- INPUT LOGIC ---
+        const input = { gas: false, brk: false, steer: 0 };
+
+        function bindPedal(el, setter) {
+            const start = (e) => { e.preventDefault(); setter(true); el.classList.add('active'); };
+            const end = (e) => { if (e) e.preventDefault(); setter(false); el.classList.remove('active'); };
+            el.addEventListener('touchstart', start, { passive: false }); el.addEventListener('touchend', end, { passive: false });
+            el.addEventListener('touchcancel', end, { passive: false }); el.addEventListener('mousedown', start);
+            el.addEventListener('mouseup', end); el.addEventListener('mouseleave', end);
+        }
+        bindPedal(ui.gasBtn, (v) => input.gas = v); bindPedal(ui.brkBtn, (v) => input.brk = v);
+
+        let steerTouchId = null; let steerStartX = 0;
+        ui.steerZone.addEventListener('touchstart', (e) => {
+            if (steerTouchId !== null) return; const touch = e.changedTouches[0];
+            steerTouchId = touch.identifier; steerStartX = touch.clientX;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (steerTouchId === null) return;
+            for(let i=0; i<e.touches.length; i++) {
+                if(e.touches[i].identifier === steerTouchId) {
+                    let deltaX = e.touches[i].clientX - steerStartX;
+                    let clampedDelta = Math.max(-150, Math.min(150, deltaX));
+                    input.steer = -(clampedDelta / 150) * Config.MaxSteerAngle; break;
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            let stillExists = false;
+            for(let i=0; i<e.touches.length; i++) { if(e.touches[i].identifier === steerTouchId) { stillExists = true; break; } }
+            if(!stillExists) { steerTouchId = null; input.steer = 0; }
+        }, { passive: true });
+
+        // --- PHYSICS ---
+        function updatePhysics(state, dt) {
+            let currentMaxSpeed = Config.MaxSpeed;
+            let currentAccel = Config.Accel;
+
+            if (isBoosting && boostFuel > 0) {
+                currentMaxSpeed = Config.BoostSpeed;
+                currentAccel = Config.BoostAccel;
+                boostFuel = Math.max(0, boostFuel - 0.5 * dt);
+            } else {
+                boostFuel = Math.min(100, boostFuel + 0.1 * dt);
+            }
+
+            if (input.gas) {
+                let speedRatio = Math.abs(state.v) / currentMaxSpeed;
+                let accel = currentAccel * (1.0 - speedRatio * 0.85); 
+                state.v += accel * dt;
+            }
+            if (input.brk) { if (state.v > 0.01) state.v *= Config.Brake; else state.v -= Config.Accel * 0.5 * dt; }
+            if (!input.gas && !input.brk) state.v *= Config.Friction;
             
+            if (state.v > currentMaxSpeed) state.v = currentMaxSpeed;
+            const minV = -Config.MaxSpeed * 0.4;
+            if (state.v < minV) state.v = minV;
+            if (Math.abs(state.v) < 0.001) state.v = 0;
+
+            const dTheta = (state.v / Config.Wheelbase) * Math.tan(state.steer) * dt;
+            state.ry += dTheta;
+            state.x += Math.sin(state.ry) * state.v * dt; state.z += Math.cos(state.ry) * state.v * dt;
+        }
+
+        // --- MINIMAP RENDERING ---
+        function drawMinimap() {
+            const ctx = ui.minimapCtx;
+            const localState = isHost ? hostState : clientState;
+            const scale = 0.1; // 1 unit = 0.1px
+            
+            ctx.fillStyle = "#4a8620"; ctx.fillRect(0, 0, 150, 150);
+            
+            ctx.fillStyle = "#3a6a10";
+            greenPatches.forEach(p => {
+                const x = (p.x - localState.x) * scale + 75;
+                const y = (p.z - localState.z) * scale + 75;
+                if (x > -20 && x < 170 && y > -20 && y < 170) {
+                    ctx.beginPath(); ctx.arc(x, y, p.r * scale, 0, Math.PI * 2); ctx.fill();
+                }
+            });
+            
+            ctx.fillStyle = "#ff66cc"; // Anime tree color
+            treePositions.forEach(t => {
+                const x = (t.x - localState.x) * scale + 75;
+                const y = (t.z - localState.z) * scale + 75;
+                if (x > 0 && x < 150 && y > 0 && y < 150) { ctx.fillRect(x-1, y-1, 2, 2); }
+            });
+            
+            checkpoints.forEach(cp => {
+                if(!cp.passed) {
+                    const x = (cp.pos.x - localState.x) * scale + 75;
+                    const y = (cp.pos.z - localState.z) * scale + 75;
+                    ctx.fillStyle = "#ff3333"; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+                }
+            });
+            
+            const remState = isHost ? clientState : hostState;
+            ctx.fillStyle = isHost ? "#00aaff" : "#ff0033";
+            ctx.beginPath(); ctx.arc((remState.x - localState.x) * scale + 75, (remState.z - localState.z) * scale + 75, 3, 0, Math.PI * 2); ctx.fill();
+            
+            ctx.fillStyle = isHost ? "#ff0033" : "#00aaff";
+            ctx.beginPath(); ctx.arc(75, 75, 3, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // --- MAIN LOOP ---
+        let lastTime = 0; let menuCamAngle = 0;
+        function animate(time) {
+            requestAnimationFrame(animate);
+            const dt = Math.min((time - lastTime) / 16.67, 2); lastTime = time;
+            const localState = isHost ? hostState : clientState;
+            const localCar = isHost ? hostCar : clientCar;
+            const remoteState = isHost ? clientState : hostState;
+            const remoteCar = isHost ? clientCar : hostCar;
+
+            if (menuActive) {
+                menuCamAngle += 0.003 * dt; const radius = 18;
+                camera.position.x = Math.sin(menuCamAngle) * radius; camera.position.z = Math.cos(menuCamAngle) * radius;
+                camera.position.y = 12; camera.lookAt(0, 1, 0);
+            } else {
+                if (gameStarted && !localState.finished) {
+                    localState.steer = input.steer; updatePhysics(localState, dt);
+                    localCar.frontWheels.forEach(p => { p.rotation.y = localState.steer; });
+                    for (let i = 0; i < checkpoints.length; i++) {
+                        const cp = checkpoints[i];
+                        if (localState.cp === cp.idx && !cp.passed) {
+                            const dx = localState.x - cp.pos.x; const dz = localState.z - cp.pos.z;
+                            if (Math.sqrt(dx*dx + dz*dz) < 8) {
+                                cp.passed = true; cp.mesh.visible = false; localState.cp++; updateLog();
+                                if (localState.cp === Config.Checkpoints) { localState.finished = true; sendPacket({ type: 'finish' }); endMatch(true); }
+                                else { checkpoints[localState.cp].mesh.visible = true; }
+                            }
+                        }
+                    }
+                    sendPacket({ type: 'state', x: localState.x, z: localState.z, ry: localState.ry, v: localState.v });
+                } else { localCar.frontWheels.forEach(p => { p.rotation.y = input.steer; }); }
+
+                localCar.group.position.x = localState.x; localCar.group.position.z = localState.z; localCar.group.rotation.y = localState.ry;
+                remoteCar.group.position.x += (remoteState.x - remoteCar.group.position.x) * 0.25;
+                remoteCar.group.position.z += (remoteState.z - remoteCar.group.position.z) * 0.25;
+                let ryDiff = remoteState.ry - remoteCar.group.rotation.y;
+                while (ryDiff > Math.PI) ryDiff -= Math.PI * 2; while (ryDiff < -Math.PI) ryDiff += Math.PI * 2;
+                remoteCar.group.rotation.y += ryDiff * 0.25;
+
+                if (!cutsceneActive) {
+                    if (cameraMode === 'third') {
+                        const camDist = carLength * 2.5 + 5.0, camHeight = carHeight * 1.5 + 1.5;
+                        const targetX = localCar.group.position.x - Math.sin(localState.ry) * camDist;
+                        const targetZ = localCar.group.position.z - Math.cos(localState.ry) * camDist;
+                        camera.position.x += (targetX - camera.position.x) * 0.12;
+                        camera.position.z += (targetZ - camera.position.z) * 0.12;
+                        camera.position.y += (camHeight - camera.position.y) * 0.12;
+                        camera.lookAt(localCar.group.position.x, 1.2, localCar.group.position.z);
+                    } else {
+                        const fpvOffsetX = Math.sin(localState.ry) * -0.3; const fpvOffsetZ = Math.cos(localState.ry) * -0.3;
+                        camera.position.set(localCar.group.position.x + fpvOffsetX, carHeight * 0.5, localCar.group.position.z + fpvOffsetZ);
+                        camera.lookAt(localCar.group.position.x + Math.sin(localState.ry) * 10, carHeight * 0.5, localCar.group.position.z + Math.cos(localState.ry) * 10);
+                    }
+                }
+                ui.speedVal.textContent = Math.floor(Math.abs(localState.v) * 120);
+                drawMinimap();
+            }
             renderer.render(scene, camera);
         }
 
-        window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; camera.aspect = W / H; camera.updateProjectionMatrix(); renderer.setSize(W, H); });
-        
-        if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-        initHands();
-        animate();
+        if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+        applyNameTags(); updateLog(); animate(0);
     </script>
 </body>
 </html>
