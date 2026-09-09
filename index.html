@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS DRIVE</title>
+    <title>HOLODRIVE RALLY</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -16,9 +16,9 @@
     </script>
     <style>
         :root {
-            --bg: #000000; --panel: #0a0a0a; --border: #2a2a2a; --text: #ffffff;
+            --bg: #05050a; --panel: #0a0a0a; --border: #2a2a2a; --text: #ffffff;
             --grey: #777777; --red: #ff0033; --blue: #00aaff; --sand: #A87C50; --green: #576f00;
-            --nexus: #00ffaa;
+            --holo: #00ffcc;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         html, body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; overflow: hidden; touch-action: none; width: 100%; height: 100%; }
@@ -28,36 +28,37 @@
         #ui-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; pointer-events: none; }
         #ui-layer > * { pointer-events: auto; }
 
-        #match-log, #controls, #speed-tach, .status-indicator, #steer-zone, #minimap, #voice-controls, #honk-btn, #nos-btn { display: none; }
+        #match-log, #controls, #speed-tach, .status-indicator, #steer-zone, #minimap, #voice-controls, #honk-btn, #nos-btn, #solo-hud { display: none; }
         
         #match-log { position: absolute; top: 16px; left: 16px; background: rgba(10, 10, 10, 0.85); border: 1px solid var(--border); padding: 12px 16px; min-width: 180px; backdrop-filter: blur(4px); }
-        #match-log h3 { font-size: 10px; color: var(--nexus); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+        #match-log h3 { font-size: 10px; color: var(--holo); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
         .log-row { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 4px; }
         .log-row span:first-child { color: var(--grey); }
 
         #menu-overlay { position: fixed; top: 0; right: 0; width: 100%; max-width: 380px; height: 100%; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; padding: 32px; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         #menu-overlay.hidden { transform: translateX(120%); }
         .menu-content { width: 100%; display: flex; flex-direction: column; gap: 16px; align-items: flex-end; }
-        .menu-title { font-size: 36px; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 8px; line-height: 0.9; text-align: right; text-shadow: 2px 2px 0px var(--nexus); }
-        .menu-subtitle { font-size: 10px; color: var(--nexus); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 24px; font-family: 'JetBrains Mono', monospace; text-align: right; }
+        .menu-title { font-size: 36px; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 8px; line-height: 0.9; text-align: right; text-shadow: 2px 2px 0px var(--holo); }
+        .menu-subtitle { font-size: 10px; color: var(--holo); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 24px; font-family: 'JetBrains Mono', monospace; text-align: right; }
         
         .menu-btn { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #000000; color: #ffffff; border: 1px solid var(--border); padding: 18px 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; cursor: pointer; width: 100%; transition: background 0.2s, border-color 0.2s; }
-        .menu-btn:hover { border-color: var(--nexus); }
+        .menu-btn:hover { border-color: var(--holo); }
         .menu-btn:active { background: #222; }
         .menu-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+        .menu-btn.solo { border-color: var(--holo); color: var(--holo); }
         .menu-panel { background: #000000; border: 1px solid var(--border); padding: 16px; margin-top: 8px; width: 100%; display: none; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
         .menu-panel.active { display: block; }
         .menu-input { width: 100%; background: #111; border: 1px solid var(--border); color: var(--text); padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 16px; text-align: center; margin-bottom: 12px; letter-spacing: 2px; text-transform: uppercase; }
-        .menu-input:focus { outline: none; border-color: var(--nexus); }
+        .menu-input:focus { outline: none; border-color: var(--holo); }
         .code-display { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
         .copy-btn { background: var(--border); color: var(--text); border: none; padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .host-status { font-size: 10px; color: var(--grey); margin-top: 8px; text-transform: uppercase; text-align: center; font-family: 'JetBrains Mono', monospace; }
 
         #ready-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 250; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
         #ready-screen.active { display: flex; }
-        .ready-title { font-size: 32px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: var(--nexus); }
+        .ready-title { font-size: 32px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: var(--holo); }
         .ready-text { font-size: 12px; color: var(--grey); margin-bottom: 32px; text-align: center; font-family: 'JetBrains Mono', monospace; }
-        .ready-btn { background: var(--nexus); color: var(--bg); border: none; padding: 20px 48px; font-weight: 700; text-transform: uppercase; font-size: 16px; cursor: pointer; margin-bottom: 24px; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+        .ready-btn { background: var(--holo); color: var(--bg); border: none; padding: 20px 48px; font-weight: 700; text-transform: uppercase; font-size: 16px; cursor: pointer; margin-bottom: 24px; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
 
         #call-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 300; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
         #call-modal.active { display: flex; }
@@ -68,7 +69,7 @@
         .call-btn.reject { background: #ff0000; color: #fff; }
 
         #countdown-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 150; pointer-events: none; }
-        #countdown-text { font-size: 120px; font-weight: 700; color: var(--nexus); text-shadow: 0 0 20px var(--nexus); opacity: 0; transition: opacity 0.2s; font-family: 'Space Grotesk', sans-serif; letter-spacing: 4px; }
+        #countdown-text { font-size: 120px; font-weight: 700; color: var(--holo); text-shadow: 0 0 20px var(--holo); opacity: 0; transition: opacity 0.2s; font-family: 'Space Grotesk', sans-serif; letter-spacing: 4px; }
 
         #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 200px; display: flex; justify-content: space-between; align-items: flex-end; padding: 24px; pointer-events: none; }
         #pedals { display: flex; gap: 16px; pointer-events: auto; }
@@ -78,12 +79,12 @@
         
         #right-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: auto; }
         .small-btn { width: 56px; height: 56px; border: 1px solid var(--border); background: rgba(10,10,10,0.65); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .small-btn:active { background: var(--nexus); color: var(--bg); }
+        .small-btn:active { background: var(--holo); color: var(--bg); }
 
         #steer-zone { position: absolute; top: 0; right: 0; width: 60%; height: 100%; z-index: 10; touch-action: none; }
         .status-indicator { position: absolute; top: 16px; left: 16px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--grey); text-align: left; text-transform: uppercase; background: rgba(10,10,10,0.7); padding: 8px 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
         .status-dot { display: inline-block; width: 8px; height: 8px; background: var(--red); animation: blink 1s infinite; }
-        .status-dot.connected { background: var(--nexus); animation: none; }
+        .status-dot.connected { background: var(--holo); animation: none; }
         @keyframes blink { 50% { opacity: 0.3; } }
 
         #minimap { position: absolute; top: 16px; right: 16px; width: 150px; height: 150px; border: 1px solid var(--border); background: #000; z-index: 15; }
@@ -97,23 +98,43 @@
         .action-btn { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.7); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .action-btn.nos { background: #00aaff; color: #000; }
         
-        #speed-tach { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--nexus); padding: 8px 24px; display: flex; align-items: baseline; gap: 8px; pointer-events: none; z-index: 15; }
-        #speed-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--nexus); }
+        #speed-tach { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; align-items: baseline; gap: 8px; pointer-events: none; z-index: 15; }
+        #speed-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--holo); }
+
+        #solo-hud { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; gap: 20px; z-index: 15; }
+        .solo-stat { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); }
+        .solo-stat span { color: var(--holo); font-weight: bold; }
 
         /* HAND TRACKING UI */
-        #hand-cam { position: absolute; bottom: 120px; left: 24px; width: 160px; height: 120px; border: 1px solid var(--nexus); z-index: 20; background: #000; transform: scaleX(-1); }
-        #hand-status { position: absolute; bottom: 245px; left: 24px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--nexus); background: rgba(0,0,0,0.7); padding: 4px 8px; border: 1px solid var(--border); display: none; }
+        #hand-cam { position: absolute; bottom: 120px; left: 24px; width: 160px; height: 120px; border: 1px solid var(--holo); z-index: 20; background: #000; }
+        #hand-status { position: absolute; bottom: 245px; left: 24px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--holo); background: rgba(0,0,0,0.7); padding: 4px 8px; border: 1px solid var(--border); display: none; }
+
+        /* STEERING WHEEL (25% width, bottom-center) */
+        #wheel-container { 
+            position: fixed; 
+            bottom: 0; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 25vw; 
+            height: 25vw; 
+            min-width: 150px; 
+            min-height: 150px;
+            z-index: 1000; 
+            pointer-events: none; 
+        }
+        #wheel-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(0, 255, 204, 0.3)); transition: transform 0.05s linear; }
+        #hand-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
 
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; }
-        .spinner { border: 2px solid rgba(0, 255, 170, 0.2); border-top: 2px solid var(--nexus); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        #load-text { color: var(--nexus); font-size: 12px; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; }
+        .spinner { border: 2px solid rgba(0, 255, 204, 0.2); border-top: 2px solid var(--holo); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #load-text { color: var(--holo); font-size: 12px; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="loader">
         <div class="spinner"></div>
-        <div id="load-text">INITIALIZING NEXUS DRIVE...</div>
+        <div id="load-text">INITIALIZING HOLODRIVE...</div>
     </div>
 
     <video id="input-video" style="display:none;" autoplay playsinline muted></video>
@@ -125,8 +146,14 @@
     <div id="ui-layer">
         <div id="steer-zone"></div>
         <div class="status-indicator clip-corner">P2P<span class="status-dot" id="status-dot"></span></div>
+        
+        <div id="solo-hud" class="clip-corner">
+            <div class="solo-stat">TIME: <span id="solo-time">0:00</span></div>
+            <div class="solo-stat">BEST: <span id="solo-best">--:--</span></div>
+        </div>
+
         <div id="match-log" class="clip-corner">
-            <h3>Nexus Log</h3>
+            <h3>Holo Log</h3>
             <div class="log-row"><span>ROOM</span><span id="log-room">------</span></div>
             <div class="log-row"><span>CP</span><span id="log-cp">0/4</span></div>
             <div class="log-row"><span>STATE</span><span id="log-state">IDLE</span></div>
@@ -154,30 +181,42 @@
         </div>
     </div>
 
+    <div id="wheel-container">
+        <img id="wheel-svg" src="wheel.svg" alt="Steering Wheel">
+        <canvas id="hand-overlay" width="300" height="300"></canvas>
+    </div>
+
     <div id="menu-overlay">
         <div class="menu-content">
-            <div class="menu-title">NEXUS<br>DRIVE</div>
-            <div class="menu-subtitle">Hand-Tracked P2P Rally</div>
+            <div class="menu-title">HOLO<br>DRIVE</div>
+            <div class="menu-subtitle">Rally Edition</div>
             <input type="text" id="username-input" class="menu-input" maxlength="12" placeholder="ENTER NAME" value="DRIVER">
+            
+            <button class="menu-btn solo" id="btn-solo">
+                DRIVE SOLO
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            </button>
+
             <button class="menu-btn" id="btn-host">HOST LOBBY<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg></button>
             <div class="menu-panel" id="host-container">
                 <div class="code-display">
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:24px; letter-spacing:4px; color:var(--nexus);" id="room-display">------</div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:24px; letter-spacing:4px; color:var(--holo);" id="room-display">------</div>
                     <button class="copy-btn clip-corner" id="btn-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                 </div>
                 <div class="host-status" id="host-status">Waiting for opponent...</div>
             </div>
+
             <button class="menu-btn" id="btn-join" style="margin-top: 16px;">JOIN LOBBY<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
             <div class="menu-panel" id="join-container">
                 <input type="text" id="room-input" class="menu-input" maxlength="6" placeholder="CODE">
-                <button class="menu-btn" id="btn-connect" style="background:var(--nexus); color:#000; border-color:var(--nexus);">CONNECT<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+                <button class="menu-btn" id="btn-connect" style="background:var(--holo); color:#000; border-color:var(--holo);">CONNECT<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
             </div>
             <button class="menu-btn secondary" id="btn-back" style="display:none; margin-top: 16px; background:#222; color:#fff;">BACK<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
         </div>
     </div>
 
     <div id="ready-screen">
-        <div class="ready-title">NEXUS ESTABLISHED</div>
+        <div class="ready-title">HOLO LINK ESTABLISHED</div>
         <div class="ready-text">Peer connection locked. Ready to race?</div>
         <button class="ready-btn" id="enter-world-btn">ENTER WORLD</button>
     </div>
@@ -204,6 +243,7 @@
         let localName = 'DRIVER', remoteName = 'RIVAL';
         let activeCutsceneInterval = null;
         let isBoosting = false, boostFuel = 100;
+        let soloMode = false, soloStartTime = 0, soloBestTime = localStorage.getItem('holodrive_best_time') || null;
 
         // --- AUTO FULLSCREEN ---
         function enterFullscreen() {
@@ -237,7 +277,7 @@
         dirLight.shadow.camera.top = 150; dirLight.shadow.camera.bottom = -150;
         scene.add(dirLight);
 
-        // --- OFF-ROAD TERRAIN (Original Preserved) ---
+        // --- OFF-ROAD TERRAIN ---
         const groundGeo = new THREE.PlaneGeometry(8000, 8000, 50, 50);
         const groundMat = new THREE.MeshStandardMaterial({ color: 0xA87C50, roughness: 1.0 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -267,12 +307,12 @@
             scene.add(patch); greenPatches.push({ x: px, z: pz, r });
         }
 
-        // --- PROCEDURAL TREES (Original Preserved) ---
+        // --- PROCEDURAL TREES (75% MORE = 175 TOTAL) ---
         function createProvidedTree() {
             try {
                 const V=(a)=>{let r=[];for(let i=0;i<a.length;i+=3)r.push(new THREE.Vector3(a[i],a[i+1],a[i+2]));return r;}
                 const geo_0 = new THREE.ConvexGeometry(V([0.00,0.32,0.32,0.35,0.50,0.35,0.17,0.17,0.00,0.35,0.50,-0.35,0.00,0.50,-0.50,-0.10,0.14,-0.10,-0.50,0.50,-0.00,-0.09,0.13,0.09,-0.00,0.50,0.50,0.00,-0.50,0.50,0.15,-0.22,0.15,0.35,-0.35,0.00,0.35,-0.50,-0.35,0.00,-0.50,-0.50,-0.35,-0.50,-0.35,-0.15,-0.15,-0.00,-0.35,-0.50,0.35,-0.00,-0.50,0.50,0.00,0.50,0.00,0.00,0.31,0.00,0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.28,0.00,0.00,0.11,0.00,0.00,0.12,0.00,0.00,0.17,0.00,0.00,0.50,0.50,0.20,0.28,0.20,0.50,0.50,0.00,0.35,0.50,-0.35,0.00,0.50,-0.50,-0.35,0.50,-0.35,-0.37,0.37,-0.00,-0.11,0.15,0.11,-0.00,0.13,0.13,0.00,-0.50,0.00,0.00,-0.11,0.00,0.00,-0.50,0.00,0.00,-0.50,0.00,0.00,-0.50,0.00,0.00,-0.50,0.00,0.00,-0.50,0.00,0.00,-0.32,0.00,0.00,-0.50,0.50,0.35,-0.50,0.35,0.11,-0.11,0.00,0.10,-0.14,-0.10,0.00,-0.13,-0.13,-0.35,-0.50,-0.35,-0.50,-0.50,-0.00,-0.35,-0.50,0.35,-0.00,-0.16,0.16]));
-                const geo_1 = new THREE.ConvexGeometry(V([0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.20,0.00,0.00,0.37,0.00,0.00,0.50,0.00,0.00,0.36,0.00,-0.12,0.29,0.00,-0.07,0.24,0.07,-0.00,0.46,0.19,0.08,0.29,0.08,0.19,0.46,0.00,0.05,0.17,-0.05,0.00,0.32,-0.13,-0.14,0.46,-0.14,-0.19,0.46,-0.00,-0.11,0.11,0.00,-0.25,0.35,0.25,-0.00,0.08,0.08,0.25,0.35,0.25,0.35,0.35,0.00,0.25,0.35,-0.25,0.00,0.35,-0.35,-0.13,0.19,-0.13,-0.35,0.35,-0.00,-0.46,0.19,0.00,-0.33,0.19,0.33,-0.00,0.19,0.46,0.33,0.19,0.33,0.13,0.05,0.00,0.14,0.08,-0.14,0.00,0.07,-0.17,-0.33,0.19,-0.33,-0.34,0.14,-0.00,-0.13,0.00,0.00,-0.28,0.00,0.28,-0.00,0.00,0.50,0.16,0.00,0.16,0.50,0.00,0.00,0.26,0.00,-0.26,0.00,0.00,-0.17,-0.27,0.00,-0.27,-0.50,0.00,-0.00,-0.46,-0.19,0.00,-0.14,-0.08,0.14,-0.00,-0.19,0.46,0.22,-0.13,0.22,0.46,-0.19,0.00,0.33,-0.19,-0.33,0.00,-0.19,-0.46,-0.33,-0.19,-0.33,-0.46,-0.19,-0.00,-0.26,-0.26,0.00,-0.25,-0.35,0.25,-0.00,-0.35,0.35,0.16,-0.23,0.16,0.35,-0.35,0.00,0.20,-0.28,-0.20,0.00,-0.35,-0.35,-0.25,-0.35,-0.25,-0.24,-0.24,-0.00,-0.11,-0.28,0.00,-0.14,-0.46,0.14,-0.00,-0.46,0.19,0.09,-0.30,0.09,0.19,-0.46,0.00,0.14,-0.46,-0.14,0.00,-0.46,-0.19,-0.04,-0.14,-0.04,-0.11,-0.26,-0.00,-0.00,-0.25,0.00,-0.00,-0.29,0.00,-0.00,-0.14,0.00,0.00,-0.50,0.00,0.00,-0.26,0.00,0.00,-0.12,-0.00,0.00,-0.38,-0.00,-0.00,-0.50,-0.00,-0.00,-0.50,-0.00]));
+                const geo_1 = new THREE.ConvexGeometry(V([0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.50,0.00,0.00,0.20,0.00,0.00,0.37,0.00,0.00,0.50,0.00,0.00,0.36,0.00,-0.12,0.29,0.00,-0.07,0.24,0.07,-0.00,0.46,0.19,0.08,0.29,0.08,0.19,0.46,0.00,0.05,0.17,-0.05,0.00,0.32,-0.13,-0.14,0.46,-0.14,-0.19,0.46,-0.00,-0.11,0.11,0.00,-0.25,0.35,0.25,-0.00,0.08,0.08,0.25,0.35,0.25,0.35,0.35,0.00,0.25,0.35,-0.25,0.00,0.35,-0.35,-0.13,0.19,-0.13,-0.35,0.35,-0.00,-0.46,0.19,0.00,-0.33,0.19,0.33,-0.00,0.19,0.46,0.33,0.19,0.33,0.13,0.05,0.00,0.14,0.08,-0.14,0.00,0.07,-0.17,-0.33,0.19,-0.33,-0.34,0.14,-0.00,-0.13,0.00,0.00,-0.28,0.00,0.28,-0.00,0.00,0.50,0.16,0.00,0.16,0.50,0.00,0.00,0.26,0.00,-0.26,0.00,0.00,-0.17,-0.27,0.00,-0.27,-0.50,0.00,-0.00,-0.46,-0.19,0.00,-0.14,-0.08,0.14,-0.00,-0.19,0.46,0.22,-0.13,0.22,0.46,-0.19,0.00,0.33,-0.19,-0.33,0.00,-0.19,-0.46,-0.33,-0.19,-0.33,-0.46,-0.19,-0.00,-0.26,-0.26,0.00,-0.25,-0.35,0.25,-0.00,-0.35,0.35,0.16,-0.23,0.16,0.35,-0.35,0.00,0.20,-0.28,-0.20,0.00,-0.35,-0.35,-0.25,-0.35,-0.25,-0.24,-0.24,-0.00,-0.11,-0.28,0.00,-0.14,-0.46,0.14,-0.00,-0.46,0.19,0.09,-0.30,0.09,0.19,-0.46,0.00,0.14,-0.46,-0.14,0.00,-0.46,-0.19,-0.04,-0.14,-0.04,-0.11,-0.26,-0.00,-0.00,-0.25,0.00,-0.00,-0.29,0.00,-0.00,-0.14,0.00,0.00,-0.50,0.00,0.00,-0.26,0.00,0.00,-0.12,-0.00,0.00,-0.38,-0.00,-0.00,-0.50,-0.00,-0.00,-0.50,-0.00]));
                 const mat_0 = new THREE.MeshStandardMaterial({ color: "#442507", roughness: 1.00, metalness: 0.00 });
                 const mat_1 = new THREE.MeshStandardMaterial({ color: "#8bab31", roughness: 1.00, metalness: 0.00 });
                 const mat_2 = new THREE.MeshStandardMaterial({ color: "#576f00", roughness: 1.00, metalness: 0.00 });
@@ -289,7 +329,7 @@
         }
 
         const treePositions = []; const treeTemplate = createProvidedTree();
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 175; i++) { // Increased to 175
             const patch = greenPatches[i % greenPatches.length];
             const angle = Math.sin(i * 1.1) * Math.PI; const dist = Math.abs(Math.cos(i * 2.2)) * patch.r;
             const tx = patch.x + Math.cos(angle) * dist; const tz = patch.z + Math.sin(angle) * dist;
@@ -303,7 +343,7 @@
         const checkpoints = [];
         cpPositions.forEach((p, i) => {
             const cpGeo = new THREE.CylinderGeometry(8, 8, 16, 16, 1, true);
-            const cpMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+            const cpMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
             const cp = new THREE.Mesh(cpGeo, cpMat); cp.position.set(p.x, 8, p.z); cp.visible = (i === 0); scene.add(cp);
             checkpoints.push({ mesh: cp, pos: p, passed: false, idx: i });
         });
@@ -319,7 +359,6 @@
             model.traverse(o => {
                 if (o.isMesh && o.material) {
                     let mat = o.material.clone();
-                    // If it's a dark/black material, replace with metallic team color
                     if (mat.color && mat.color.r < 0.2 && mat.color.g < 0.2 && mat.color.b < 0.2) {
                         mat.color = new THREE.Color(colorHex);
                         mat.metalness = 0.8; mat.roughness = 0.2;
@@ -333,14 +372,12 @@
         gltfLoader.load('assets/scene.gltf', (gltf) => {
             const baseModel = gltf.scene;
             
-            // Host Car (Red Tint)
             const hostModel = baseModel.clone();
             hostModel.scale.set(1, 1, 1);
             hostModel.traverse(obj => { if(obj.isMesh) { obj.castShadow = true; if(obj.name.toLowerCase().includes('wheel')||obj.name.toLowerCase().includes('tire')) hostCar.frontWheels.push(obj); } });
             applyTint(hostModel, 0xff0033);
             hostCar.group.add(hostModel);
             
-            // Client Car (Blue Tint)
             const clientModel = baseModel.clone();
             clientModel.scale.set(1, 1, 1);
             clientModel.traverse(obj => { if(obj.isMesh) { obj.castShadow = true; if(obj.name.toLowerCase().includes('wheel')||obj.name.toLowerCase().includes('tire')) clientCar.frontWheels.push(obj); } });
@@ -378,6 +415,7 @@
         // --- UI REFS ---
         const ui = {
             menu: document.getElementById('menu-overlay'),
+            btnSolo: document.getElementById('btn-solo'),
             btnHost: document.getElementById('btn-host'), btnJoin: document.getElementById('btn-join'), btnBack: document.getElementById('btn-back'),
             joinCont: document.getElementById('join-container'), hostCont: document.getElementById('host-container'),
             roomInput: document.getElementById('room-input'), btnConnect: document.getElementById('btn-connect'),
@@ -395,22 +433,43 @@
             honkBtn: document.getElementById('honk-btn'), nosBtn: document.getElementById('nos-btn'),
             callModal: document.getElementById('call-modal'), acceptCallBtn: document.getElementById('accept-call-btn'), rejectCallBtn: document.getElementById('reject-call-btn'),
             callBtn: document.getElementById('call-btn'), muteBtn: document.getElementById('mute-btn'), endCallBtn: document.getElementById('end-call-btn'),
-            voiceControls: document.getElementById('voice-controls'), handStatus: document.getElementById('hand-status')
+            voiceControls: document.getElementById('voice-controls'), handStatus: document.getElementById('hand-status'),
+            soloHud: document.getElementById('solo-hud'), soloTime: document.getElementById('solo-time'), soloBest: document.getElementById('solo-best')
         };
 
+        if (soloBestTime) ui.soloBest.innerText = formatTime(parseFloat(soloBestTime));
+
+        function formatTime(ms) {
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
         function updateLog() {
-            ui.logRoom.textContent = roomCode || '------';
+            ui.logRoom.textContent = roomCode || 'SOLO';
             const localState = isHost ? hostState : clientState;
             ui.logCp.textContent = `${localState.cp}/${Config.Checkpoints}`;
             ui.logState.textContent = gameStarted ? 'RACING' : (cutsceneActive ? 'CUTSCENE' : 'IDLE');
         }
 
         function generateRoomCode() { const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let res = ''; for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length)); return res; }
-        function showMainMenuButtons() { ui.btnHost.style.display = 'flex'; ui.btnJoin.style.display = 'flex'; ui.btnBack.style.display = 'none'; ui.hostCont.classList.remove('active'); ui.joinCont.classList.remove('active'); }
-        function showBackButton() { ui.btnHost.style.display = 'none'; ui.btnJoin.style.display = 'none'; ui.btnBack.style.display = 'flex'; }
+        function showMainMenuButtons() { ui.btnSolo.style.display = 'flex'; ui.btnHost.style.display = 'flex'; ui.btnJoin.style.display = 'flex'; ui.btnBack.style.display = 'none'; ui.hostCont.classList.remove('active'); ui.joinCont.classList.remove('active'); }
+        function showBackButton() { ui.btnSolo.style.display = 'none'; ui.btnHost.style.display = 'none'; ui.btnJoin.style.display = 'none'; ui.btnBack.style.display = 'flex'; }
+
+        ui.btnSolo.onclick = () => {
+            enterFullscreen(); soloMode = true; isHost = true; menuActive = false;
+            ui.menu.classList.add('hidden');
+            ui.controls.style.display = 'flex'; ui.speedTach.style.display = 'flex';
+            ui.matchLog.style.display = 'block'; ui.statusInd.style.display = 'none';
+            ui.steerZone.style.display = 'block'; ui.minimap.style.display = 'block';
+            ui.honkBtn.style.display = 'flex'; ui.nosBtn.style.display = 'flex';
+            ui.soloHud.style.display = 'flex'; ui.handStatus.style.display = 'block';
+            clientCar.group.visible = false;
+            startCutscene();
+        };
 
         ui.btnHost.onclick = () => {
-            enterFullscreen(); isHost = true; roomCode = generateRoomCode(); localName = ui.usernameInput.value.toUpperCase() || 'DRIVER';
+            enterFullscreen(); isHost = true; soloMode = false; roomCode = generateRoomCode(); localName = ui.usernameInput.value.toUpperCase() || 'DRIVER';
             ui.hostCont.classList.add('active'); showBackButton(); ui.roomDisplay.textContent = roomCode; updateLog();
             try {
                 peer = new Peer(roomCode + '_host', { debug: 0 });
@@ -419,7 +478,7 @@
                 peer.on('call', (call) => { activeCall = call; ui.callModal.classList.add('active'); });
             } catch(e) { ui.hostStatus.textContent = "NETWORK ERROR"; }
         };
-        ui.btnJoin.onclick = () => { enterFullscreen(); ui.joinCont.classList.add('active'); showBackButton(); };
+        ui.btnJoin.onclick = () => { enterFullscreen(); soloMode = false; ui.joinCont.classList.add('active'); showBackButton(); };
         ui.btnBack.onclick = () => { showMainMenuButtons(); };
         ui.btnCopy.onclick = () => {
             const textToCopy = ui.roomDisplay.textContent;
@@ -429,7 +488,7 @@
         ui.btnConnect.onclick = () => {
             roomCode = ui.roomInput.value.toUpperCase().trim();
             if (roomCode.length !== 6) { ui.roomInput.style.borderColor = 'var(--red)'; return; }
-            localName = ui.usernameInput.value.toUpperCase() || 'DRIVER'; updateLog(); isHost = false;
+            localName = ui.usernameInput.value.toUpperCase() || 'DRIVER'; updateLog(); isHost = false; soloMode = false;
             try {
                 peer = new Peer({ debug: 0 });
                 peer.on('open', () => { con = peer.connect(roomCode + '_host', { reliable: false }); setupConnection(); });
@@ -477,12 +536,12 @@
 
         // --- HONK LOGIC ---
         function playHonk() { let o = audioCtx.createOscillator(); let g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 400; o.type = "sawtooth"; g.gain.value = 0.1; o.start(); setTimeout(() => o.stop(), 200); }
-        ui.honkBtn.onclick = () => { playHonk(); sendPacket({ type: 'honk' }); };
+        ui.honkBtn.onclick = () => { playHonk(); if(!soloMode) sendPacket({ type: 'honk' }); };
 
         // --- NITRO LOGIC ---
         function bindNitro() {
-            const start = (e) => { e.preventDefault(); isBoosting = true; sendPacket({ type: 'nitro', active: true }); };
-            const end = (e) => { if(e) e.preventDefault(); isBoosting = false; sendPacket({ type: 'nitro', active: false }); };
+            const start = (e) => { e.preventDefault(); isBoosting = true; if(!soloMode) sendPacket({ type: 'nitro', active: true }); };
+            const end = (e) => { if(e) e.preventDefault(); isBoosting = false; if(!soloMode) sendPacket({ type: 'nitro', active: false }); };
             ui.nosBtn.addEventListener('touchstart', start, { passive: false }); ui.nosBtn.addEventListener('touchend', end, { passive: false });
             ui.nosBtn.addEventListener('mousedown', start); ui.nosBtn.addEventListener('mouseup', end); ui.nosBtn.addEventListener('mouseleave', end);
         }
@@ -499,21 +558,41 @@
                     clearInterval(activeCutsceneInterval); cutsceneActive = false;
                     const ls = isHost ? hostState : clientState;
                     camera.position.set(ls.x - Math.sin(ls.ry) * 8, 4, ls.z - Math.cos(ls.ry) * 8); camera.lookAt(ls.x, 1, ls.z);
-                    if (isHost) { sendPacket({ type: 'race_start' }); startCountdown(); }
+                    if (isHost) { if(!soloMode) sendPacket({ type: 'race_start' }); startCountdown(); }
                 }
             }, 16);
         }
         function startCountdown() {
             let count = 3; ui.countdownText.style.opacity = 1; ui.countdownText.textContent = count;
+            if(soloMode) soloStartTime = Date.now();
             const interval = setInterval(() => { count--; if (count > 0) ui.countdownText.textContent = count; else if (count === 0) ui.countdownText.textContent = "GO"; else { clearInterval(interval); ui.countdownText.style.opacity = 0; gameStarted = true; updateLog(); } }, 1000);
         }
         function resetRacePositions() { hostState = spawnState(2.0); clientState = spawnState(-2.0); checkpoints.forEach((cp, i) => { cp.passed = false; cp.mesh.visible = (i === 0); }); gameStarted = false; updateLog(); }
-        function endMatch(won) { gameStarted = false; ui.countdownText.style.opacity = 1; ui.countdownText.textContent = won ? "VICTORY" : "DEFEAT"; updateLog(); setTimeout(() => { ui.countdownText.style.opacity = 0; resetRacePositions(); if (isHost) { sendPacket({ type: 'reset_race' }); startCutscene(); } }, 4000); }
+        function endMatch(won) {
+            gameStarted = false; ui.countdownText.style.opacity = 1; 
+            if(soloMode) {
+                const finalTime = Date.now() - soloStartTime;
+                if(!soloBestTime || finalTime < parseFloat(soloBestTime)) {
+                    soloBestTime = finalTime; localStorage.setItem('holodrive_best_time', finalTime);
+                    ui.soloBest.innerText = formatTime(finalTime);
+                    ui.countdownText.textContent = "NEW RECORD";
+                } else {
+                    ui.countdownText.textContent = "FINISH";
+                }
+            } else {
+                ui.countdownText.textContent = won ? "VICTORY" : "DEFEAT";
+            }
+            updateLog(); 
+            setTimeout(() => { ui.countdownText.style.opacity = 0; resetRacePositions(); if (isHost) { if(!soloMode) sendPacket({ type: 'reset_race' }); startCutscene(); } }, 4000);
+        }
 
-        // --- MEDIAPIPE HAND TRACKING ---
+        // --- MEDIAPIPE HAND TRACKING (1:1 NO MIRROR) ---
         const inputVideo = document.getElementById('input-video');
         const handCam = document.getElementById('hand-cam');
         const handCtx = handCam.getContext('2d');
+        const handOverlay = document.getElementById('hand-overlay');
+        const handCtxOverlay = handOverlay.getContext('2d');
+        const wheelSvg = document.getElementById('wheel-svg');
         let hands;
         let handTrackingActive = false;
         let handInput = { gas: false, brk: false, steer: 0 };
@@ -530,43 +609,87 @@
         async function processHandFrame() { if (inputVideo.readyState >= 2) await hands.send({ image: inputVideo }); requestAnimationFrame(processHandFrame); }
 
         function onHandResults(results) {
+            // NO MIRRORING of the raw feed
             handCtx.save();
             handCtx.clearRect(0, 0, handCam.width, handCam.height);
-            handCtx.scale(-1, 1);
-            handCtx.drawImage(inputVideo, -handCam.width, 0, handCam.width, handCam.height);
+            handCtx.drawImage(inputVideo, 0, 0, handCam.width, handCam.height);
             handCtx.restore();
+
+            handCtxOverlay.clearRect(0, 0, handOverlay.width, handOverlay.height);
 
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 handTrackingActive = true;
                 const lm = results.multiHandLandmarks[0];
                 
-                // Draw skeleton on cam
+                // Draw skeleton on small cam (Raw, no mirror)
                 handCtx.save();
-                handCtx.scale(-1, 1);
-                drawConnectors(handCtx, lm, HAND_CONNECTIONS, { color: '#00ffaa', lineWidth: 2 });
+                drawConnectors(handCtx, lm, HAND_CONNECTIONS, { color: '#00ffcc', lineWidth: 2 });
                 drawLandmarks(handCtx, lm, { color: '#ff0033', lineWidth: 1, radius: 2 });
                 handCtx.restore();
 
                 const wrist = lm[0], midMcp = lm[9];
                 
-                // Speed Control (Forward/Backward via Hand Height Y)
-                // 0.0 is top, 1.0 is bottom
-                if (wrist.y < 0.4) { handInput.gas = true; handInput.brk = false; }
-                else if (wrist.y > 0.65) { handInput.gas = false; handInput.brk = true; }
+                // --- SPEED CONTROL (Z-DEPTH / HAND SIZE) ---
+                let minY = 1, maxY = 0;
+                lm.forEach(p => { minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
+                const handSize = maxY - minY; // Approx 0.3 normal, 0.5 close, 0.15 far
+                
+                if (handSize > 0.45) { handInput.gas = true; handInput.brk = false; }
+                else if (handSize < 0.25) { handInput.gas = false; handInput.brk = true; }
                 else { handInput.gas = false; handInput.brk = false; }
                 
-                // Steering Control (Hand Rotation)
-                // Vector from wrist to midMcp
+                // --- STEERING CONTROL (1:1 ROLL) ---
+                // Vector from wrist to middle MCP. 
+                // If hand is vertical (pointing up), dx=0, dy<0 (since y goes down). atan2(-, 0) = -PI/2.
+                // We want vertical to be 0. Right tilt (palm down right) -> dx>0, dy=0 -> atan2(0, +) = 0.
                 const dx = midMcp.x - wrist.x;
                 const dy = midMcp.y - wrist.y;
                 const angle = Math.atan2(dy, dx);
-                // Standard upright hand: angle is ~PI/2 (1.57)
-                let steerVal = (Math.PI/2 - angle) / (Math.PI/3); // Max turn at 60deg tilt
+                
+                // Normalize: vertical is -PI/2. Right is 0. Left is PI (or -PI).
+                let steerVal = (angle + Math.PI/2) / (Math.PI/3); // Max turn at 60deg tilt
                 handInput.steer = Math.max(-1, Math.min(1, steerVal)) * Config.MaxSteerAngle;
+                
+                // Rotate visual wheel
+                wheelSvg.style.transform = `rotate(${angle + Math.PI/2}rad)`;
+                
+                // --- HAND OVERLAY ON WHEEL (CENTERED) ---
+                // Map hand to always appear on the wheel
+                const cx = handOverlay.width / 2, cy = handOverlay.height / 2;
+                const handCenterX = (wrist.x + midMcp.x) / 2;
+                const handCenterY = (wrist.y + midMcp.y) / 2;
+                const scale = 150; // Scale factor for drawing on 300x300 canvas
+                
+                handCtxOverlay.save();
+                handCtxOverlay.translate(cx, cy);
+                handCtxOverlay.rotate(angle + Math.PI/2); // Match wheel rotation
+                
+                handCtxOverlay.strokeStyle = 'rgba(0, 255, 204, 0.9)';
+                handCtxOverlay.lineWidth = 4;
+                handCtxOverlay.shadowColor = '#00ffcc';
+                handCtxOverlay.shadowBlur = 8;
+                handCtxOverlay.beginPath();
+                const connections = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+                connections.forEach(([a, b]) => {
+                    const p1 = lm[a], p2 = lm[b];
+                    handCtxOverlay.moveTo((p1.x - handCenterX) * scale, (p1.y - handCenterY) * scale);
+                    handCtxOverlay.lineTo((p2.x - handCenterX) * scale, (p2.y - handCenterY) * scale);
+                });
+                handCtxOverlay.stroke();
+                
+                handCtxOverlay.fillStyle = '#ff0033';
+                handCtxOverlay.shadowColor = '#ff0033';
+                lm.forEach(pt => {
+                    handCtxOverlay.beginPath();
+                    handCtxOverlay.arc((pt.x - handCenterX) * scale, (pt.y - handCenterY) * scale, 3, 0, Math.PI * 2);
+                    handCtxOverlay.fill();
+                });
+                handCtxOverlay.restore();
                 
             } else {
                 handTrackingActive = false;
                 handInput.gas = false; handInput.brk = false; handInput.steer = 0;
+                wheelSvg.style.transform = `rotate(0rad)`;
             }
         }
 
@@ -591,7 +714,6 @@
             let currentMaxSpeed = Config.MaxSpeed; let currentAccel = Config.Accel;
             if (isBoosting && boostFuel > 0) { currentMaxSpeed = Config.BoostSpeed; currentAccel = Config.BoostAccel; boostFuel = Math.max(0, boostFuel - 0.5 * dt); } else { boostFuel = Math.min(100, boostFuel + 0.1 * dt); }
 
-            // Merge Hand Tracking Input and Touch Input
             let finalGas = input.gas || (handTrackingActive && handInput.gas);
             let finalBrk = input.brk || (handTrackingActive && handInput.brk);
             let finalSteer = handTrackingActive ? handInput.steer : input.steer;
@@ -617,9 +739,11 @@
             greenPatches.forEach(p => { const x = (p.x - localState.x) * scale + 75; const y = (p.z - localState.z) * scale + 75; if (x > -20 && x < 170 && y > -20 && y < 170) { ctx.beginPath(); ctx.arc(x, y, p.r * scale, 0, Math.PI * 2); ctx.fill(); } });
             ctx.fillStyle = "#223300";
             treePositions.forEach(t => { const x = (t.x - localState.x) * scale + 75; const y = (t.z - localState.z) * scale + 75; if (x > 0 && x < 150 && y > 0 && y < 150) { ctx.fillRect(x-1, y-1, 2, 2); } });
-            checkpoints.forEach(cp => { if(!cp.passed) { const x = (cp.pos.x - localState.x) * scale + 75; const y = (cp.pos.z - localState.z) * scale + 75; ctx.fillStyle = "#00ffaa"; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); } });
-            const remState = isHost ? clientState : hostState;
-            ctx.fillStyle = isHost ? "#00aaff" : "#ff0033"; ctx.beginPath(); ctx.arc((remState.x - localState.x) * scale + 75, (remState.z - localState.z) * scale + 75, 3, 0, Math.PI * 2); ctx.fill();
+            checkpoints.forEach(cp => { if(!cp.passed) { const x = (cp.pos.x - localState.x) * scale + 75; const y = (cp.pos.z - localState.z) * scale + 75; ctx.fillStyle = "#00ffcc"; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); } });
+            if(!soloMode) {
+                const remState = isHost ? clientState : hostState;
+                ctx.fillStyle = isHost ? "#00aaff" : "#ff0033"; ctx.beginPath(); ctx.arc((remState.x - localState.x) * scale + 75, (remState.z - localState.z) * scale + 75, 3, 0, Math.PI * 2); ctx.fill();
+            }
             ctx.fillStyle = isHost ? "#ff0033" : "#00aaff"; ctx.beginPath(); ctx.arc(75, 75, 3, 0, Math.PI * 2); ctx.fill();
         }
 
@@ -647,20 +771,23 @@
                             const dx = localState.x - cp.pos.x; const dz = localState.z - cp.pos.z;
                             if (Math.sqrt(dx*dx + dz*dz) < 8) {
                                 cp.passed = true; cp.mesh.visible = false; localState.cp++; updateLog();
-                                if (localState.cp === Config.Checkpoints) { localState.finished = true; sendPacket({ type: 'finish' }); endMatch(true); }
+                                if (localState.cp === Config.Checkpoints) { localState.finished = true; if(!soloMode) sendPacket({ type: 'finish' }); endMatch(true); }
                                 else { checkpoints[localState.cp].mesh.visible = true; }
                             }
                         }
                     }
-                    sendPacket({ type: 'state', x: localState.x, z: localState.z, ry: localState.ry, v: localState.v });
+                    if(!soloMode) sendPacket({ type: 'state', x: localState.x, z: localState.z, ry: localState.ry, v: localState.v });
                 } else { localCar.frontWheels.forEach(p => { p.rotation.y = localState.steer; }); }
 
                 localCar.group.position.x = localState.x; localCar.group.position.z = localState.z; localCar.group.rotation.y = localState.ry;
-                remoteCar.group.position.x += (remoteState.x - remoteCar.group.position.x) * 0.25;
-                remoteCar.group.position.z += (remoteState.z - remoteCar.group.position.z) * 0.25;
-                let ryDiff = remoteState.ry - remoteCar.group.rotation.y;
-                while (ryDiff > Math.PI) ryDiff -= Math.PI * 2; while (ryDiff < -Math.PI) ryDiff += Math.PI * 2;
-                remoteCar.group.rotation.y += ryDiff * 0.25;
+                
+                if(!soloMode) {
+                    remoteCar.group.position.x += (remoteState.x - remoteCar.group.position.x) * 0.25;
+                    remoteCar.group.position.z += (remoteState.z - remoteCar.group.position.z) * 0.25;
+                    let ryDiff = remoteState.ry - remoteCar.group.rotation.y;
+                    while (ryDiff > Math.PI) ryDiff -= Math.PI * 2; while (ryDiff < -Math.PI) ryDiff += Math.PI * 2;
+                    remoteCar.group.rotation.y += ryDiff * 0.25;
+                }
 
                 if (!cutsceneActive) {
                     if (cameraMode === 'third') {
@@ -678,6 +805,7 @@
                     }
                 }
                 ui.speedVal.textContent = Math.floor(Math.abs(localState.v) * 120);
+                if(soloMode && gameStarted) ui.soloTime.innerText = formatTime(Date.now() - soloStartTime);
                 drawMinimap();
             }
             renderer.render(scene, camera);

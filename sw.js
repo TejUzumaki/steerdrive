@@ -1,6 +1,6 @@
-const CACHE_NAME = 'nexus-drive-v1';
-const MODEL_CACHE = 'nexus-models-v1';
-const SHELL_ASSETS = ['./', './index.html', './wheel.svg', './manifest.json'];
+const CACHE_NAME = 'holodrive-v1';
+const MODEL_CACHE = 'holodrive-models-v1';
+const SHELL_ASSETS = ['./', './index.html', './wheel.svg', './icon.svg', './manifest.json'];
 const MODEL_ASSETS = [
   './assets/scene.gltf',
   './assets/scene.bin',
@@ -23,7 +23,6 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.map(k => {
-      // Delete old shell caches, but preserve model cache to save data
       if (k !== CACHE_NAME && k !== MODEL_CACHE) return caches.delete(k);
     }))).then(() => self.clients.claim())
   );
@@ -33,7 +32,6 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
 
-  // Network-first for HTML/JS/CSS so updates apply instantly
   if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname.endsWith('.json')) {
     e.respondWith(
       fetch(req).then(resp => {
@@ -42,9 +40,7 @@ self.addEventListener('fetch', e => {
         return resp;
       }).catch(() => caches.match(req))
     );
-  } 
-  // Cache-first for GLTF models and textures to save bandwidth
-  else if (url.pathname.includes('/assets/')) {
+  } else if (url.pathname.includes('/assets/')) {
     e.respondWith(
       caches.match(req).then(cached => {
         return cached || fetch(req).then(resp => {
@@ -54,9 +50,7 @@ self.addEventListener('fetch', e => {
         });
       })
     );
-  }
-  // Cache-first for everything else
-  else {
+  } else {
     e.respondWith(caches.match(req).then(c => c || fetch(req)));
   }
 });
