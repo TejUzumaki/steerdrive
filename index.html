@@ -18,7 +18,7 @@
         :root {
             --bg: #05050a; --panel: #0a0a0a; --border: #2a2a2a; --text: #ffffff;
             --grey: #777777; --red: #ff0033; --blue: #00aaff; --sand: #A87C50; --green: #576f00;
-            --holo: #00aaff; /* Electric Blue */
+            --holo: #00aaff;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         html, body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; overflow: hidden; touch-action: none; width: 100%; height: 100%; }
@@ -28,7 +28,7 @@
         #ui-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 50; pointer-events: none; }
         #ui-layer > * { pointer-events: auto; }
 
-        #match-log, #controls, #speed-tach, .status-indicator, #steer-zone, #minimap, #voice-controls, #honk-btn, #nos-btn, #solo-hud { display: none; }
+        #match-log, #controls, #speed-tach, .status-indicator, #steer-zone, #minimap, #voice-controls, #honk-btn, #nos-btn, #solo-hud, #hand-cam, #hand-status { display: none; }
         
         #match-log { position: absolute; top: 16px; left: 16px; background: rgba(10, 10, 10, 0.85); border: 1px solid var(--border); padding: 12px 16px; min-width: 180px; backdrop-filter: blur(4px); }
         #match-log h3 { font-size: 10px; color: var(--holo); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 5px var(--holo); }
@@ -98,13 +98,16 @@
         .action-btn { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.7); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .action-btn.nos { background: #00aaff; color: #000; }
         
-        /* SPEED TACH MOVED TO TOP CENTER */
         #speed-tach { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; align-items: baseline; gap: 8px; pointer-events: none; z-index: 15; box-shadow: 0 0 10px rgba(0, 170, 255, 0.3); }
         #speed-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--holo); text-shadow: 0 0 10px var(--holo); }
 
         #solo-hud { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; gap: 20px; z-index: 15; box-shadow: 0 0 10px rgba(0, 170, 255, 0.3); }
         .solo-stat { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); }
         .solo-stat span { color: var(--holo); font-weight: bold; text-shadow: 0 0 5px var(--holo); }
+
+        /* HAND CAM UI */
+        #hand-cam { position: absolute; bottom: 120px; left: 24px; width: 160px; height: 120px; border: 1px solid var(--holo); z-index: 20; background: #000; box-shadow: 0 0 10px rgba(0, 170, 255, 0.3); }
+        #hand-status { position: absolute; bottom: 245px; left: 24px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--holo); background: rgba(0,0,0,0.7); padding: 4px 8px; border: 1px solid var(--border); display: none; }
 
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; }
         .spinner { border: 2px solid rgba(0, 170, 255, 0.2); border-top: 2px solid var(--holo); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -119,6 +122,8 @@
     </div>
 
     <video id="input-video" style="display:none;" autoplay playsinline muted></video>
+    <canvas id="hand-cam" width="160" height="120"></canvas>
+    <div id="hand-status">HAND TRACKING: ACTIVE</div>
 
     <canvas id="game-canvas"></canvas>
 
@@ -408,7 +413,8 @@
             callModal: document.getElementById('call-modal'), acceptCallBtn: document.getElementById('accept-call-btn'), rejectCallBtn: document.getElementById('reject-call-btn'),
             callBtn: document.getElementById('call-btn'), muteBtn: document.getElementById('mute-btn'), endCallBtn: document.getElementById('end-call-btn'),
             voiceControls: document.getElementById('voice-controls'),
-            soloHud: document.getElementById('solo-hud'), soloTime: document.getElementById('solo-time'), soloBest: document.getElementById('solo-best')
+            soloHud: document.getElementById('solo-hud'), soloTime: document.getElementById('solo-time'), soloBest: document.getElementById('solo-best'),
+            handCam: document.getElementById('hand-cam'), handStatus: document.getElementById('hand-status')
         };
 
         if (soloBestTime) ui.soloBest.innerText = formatTime(parseFloat(soloBestTime));
@@ -437,7 +443,7 @@
             ui.matchLog.style.display = 'block'; ui.statusInd.style.display = 'none';
             ui.steerZone.style.display = 'block'; ui.minimap.style.display = 'block';
             ui.honkBtn.style.display = 'flex'; ui.nosBtn.style.display = 'flex';
-            ui.soloHud.style.display = 'flex';
+            ui.soloHud.style.display = 'flex'; ui.handCam.style.display = 'block'; ui.handStatus.style.display = 'block';
             clientCar.group.visible = false;
             startCutscene();
         };
@@ -495,6 +501,7 @@
                 ui.matchLog.style.display = 'block'; ui.statusInd.style.display = 'flex';
                 ui.steerZone.style.display = 'block'; ui.minimap.style.display = 'block';
                 ui.voiceControls.style.display = 'flex'; ui.honkBtn.style.display = 'flex'; ui.nosBtn.style.display = 'flex';
+                ui.handCam.style.display = 'block'; ui.handStatus.style.display = 'block';
                 startCutscene();
             }
         }
@@ -560,8 +567,9 @@
             setTimeout(() => { ui.countdownText.style.opacity = 0; resetRacePositions(); if (isHost) { if(!soloMode) sendPacket({ type: 'reset_race' }); startCutscene(); } }, 4000);
         }
 
-        // --- MEDIAPIPE HAND TRACKING (TWO HANDS, KNUCKLES, FISTS & THUMBS) ---
+        // --- MEDIAPIPE HAND TRACKING (DEADZONE & SMOOTHING) ---
         const inputVideo = document.getElementById('input-video');
+        const handCtx = ui.handCam.getContext('2d');
         let hands;
         let handTrackingActive = false;
         let handInput = { gas: false, brk: false, steer: 0 };
@@ -582,23 +590,34 @@
         }
         
         function isThumbOut(lm) {
-            // Fingers are tucked, but thumb tip is far from index knuckle
             let knuckleDist = Math.hypot(lm[3].x - lm[9].x, lm[3].y - lm[9].y);
             let thumbTipDist = Math.hypot(lm[4].x - lm[9].x, lm[4].y - lm[9].y);
             return isFist(lm) && thumbTipDist > knuckleDist * 1.3;
         }
 
         function onHandResults(results) {
+            handCtx.save();
+            handCtx.clearRect(0, 0, ui.handCam.width, ui.handCam.height);
+            handCtx.drawImage(inputVideo, 0, 0, ui.handCam.width, ui.handCam.height);
+            handCtx.restore();
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
                 handTrackingActive = true;
                 let h0 = results.multiHandLandmarks[0];
                 let h1 = results.multiHandLandmarks[1];
                 
-                // Sort hands by X to determine left/right
+                // Draw Skeletons on Cam
+                handCtx.save();
+                [h0, h1].forEach(lm => {
+                    drawConnectors(handCtx, lm, HAND_CONNECTIONS, { color: '#00aaff', lineWidth: 2 });
+                    drawLandmarks(handCtx, lm, { color: '#ff0033', lineWidth: 1, radius: 2 });
+                });
+                handCtx.restore();
+
                 let leftHand = h0[0].x < h1[0].x ? h0 : h1;
                 let rightHand = h0[0].x < h1[0].x ? h1 : h0;
                 
-                // --- SPEED CONTROL (FISTS vs THUMBS OUT) ---
+                // --- SPEED CONTROL ---
                 const leftFist = isFist(leftHand);
                 const rightFist = isFist(rightHand);
                 const leftThumbOut = isThumbOut(leftHand);
@@ -612,25 +631,37 @@
                     handInput.gas = false; handInput.brk = false;
                 }
                 
-                // --- STEERING CONTROL (KNUCKLE LINE TILT) ---
-                const leftKnuckle = leftHand[9]; // Middle finger MCP
+                // --- STEERING CONTROL (DEADZONE & PROGRESSIVE) ---
+                const leftKnuckle = leftHand[9];
                 const rightKnuckle = rightHand[9];
                 
                 const dx = rightKnuckle.x - leftKnuckle.x;
                 const dy = rightKnuckle.y - leftKnuckle.y;
-                const angle = Math.atan2(dy, dx); // 0 is level, positive is right side down
+                const angle = Math.atan2(dy, dx); 
                 
-                // Max steer at 30 degrees (PI/6) tilt
-                const targetSteer = Math.max(-1, Math.min(1, angle / (Math.PI / 6))) * Config.MaxSteerAngle;
+                // Deadzone to ignore slight bobbling (~10 degrees or 0.17 radians)
+                const deadZone = 0.1; 
+                let mappedAngle = angle;
+                if (Math.abs(mappedAngle) < deadZone) {
+                    mappedAngle = 0;
+                } else {
+                    // Re-map angle outside deadzone for progressive steering
+                    mappedAngle = mappedAngle - (Math.sign(mappedAngle) * deadZone);
+                }
                 
-                // Artificial Smoothening (Lerp)
-                handInput.steer += (targetSteer - handInput.steer) * 0.15;
+                // Max steering at 45 degrees (PI/4) tilt
+                const maxTilt = Math.PI / 4; 
+                const tiltRange = maxTilt - deadZone;
+                let targetSteer = (mappedAngle / tiltRange) * Config.MaxSteerAngle;
+                targetSteer = Math.max(-Config.MaxSteerAngle, Math.min(Config.MaxSteerAngle, targetSteer));
+                
+                // Stronger Smoothing (0.08 lerp factor for stability)
+                handInput.steer += (targetSteer - handInput.steer) * 0.08;
                 
             } else {
                 handTrackingActive = false;
                 handInput.gas = false; handInput.brk = false; 
-                // Smoothly return to center
-                handInput.steer += (0 - handInput.steer) * 0.15;
+                handInput.steer += (0 - handInput.steer) * 0.08;
             }
         }
 
