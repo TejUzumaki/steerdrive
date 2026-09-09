@@ -1,6 +1,6 @@
-const CACHE_NAME = 'holodrive-v1';
+const CACHE_NAME = 'holodrive-v2';
 const MODEL_CACHE = 'holodrive-models-v1';
-const SHELL_ASSETS = ['./', './index.html', './wheel.svg', './icon.svg', './manifest.json'];
+const SHELL_ASSETS = ['./', './index.html', './icon.svg', './manifest.json'];
 const MODEL_ASSETS = [
   './assets/scene.gltf',
   './assets/scene.bin',

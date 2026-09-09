@@ -18,7 +18,7 @@
         :root {
             --bg: #05050a; --panel: #0a0a0a; --border: #2a2a2a; --text: #ffffff;
             --grey: #777777; --red: #ff0033; --blue: #00aaff; --sand: #A87C50; --green: #576f00;
-            --holo: #00ffcc;
+            --holo: #00aaff; /* Electric Blue */
         }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         html, body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; overflow: hidden; touch-action: none; width: 100%; height: 100%; }
@@ -31,7 +31,7 @@
         #match-log, #controls, #speed-tach, .status-indicator, #steer-zone, #minimap, #voice-controls, #honk-btn, #nos-btn, #solo-hud { display: none; }
         
         #match-log { position: absolute; top: 16px; left: 16px; background: rgba(10, 10, 10, 0.85); border: 1px solid var(--border); padding: 12px 16px; min-width: 180px; backdrop-filter: blur(4px); }
-        #match-log h3 { font-size: 10px; color: var(--holo); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+        #match-log h3 { font-size: 10px; color: var(--holo); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 5px var(--holo); }
         .log-row { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 4px; }
         .log-row span:first-child { color: var(--grey); }
 
@@ -56,9 +56,9 @@
 
         #ready-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 250; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
         #ready-screen.active { display: flex; }
-        .ready-title { font-size: 32px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: var(--holo); }
+        .ready-title { font-size: 32px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: var(--holo); text-shadow: 0 0 10px var(--holo); }
         .ready-text { font-size: 12px; color: var(--grey); margin-bottom: 32px; text-align: center; font-family: 'JetBrains Mono', monospace; }
-        .ready-btn { background: var(--holo); color: var(--bg); border: none; padding: 20px 48px; font-weight: 700; text-transform: uppercase; font-size: 16px; cursor: pointer; margin-bottom: 24px; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+        .ready-btn { background: var(--holo); color: var(--bg); border: none; padding: 20px 48px; font-weight: 700; text-transform: uppercase; font-size: 16px; cursor: pointer; margin-bottom: 24px; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); box-shadow: 0 0 15px var(--holo); }
 
         #call-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 300; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
         #call-modal.active { display: flex; }
@@ -98,35 +98,16 @@
         .action-btn { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.7); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .action-btn.nos { background: #00aaff; color: #000; }
         
-        #speed-tach { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; align-items: baseline; gap: 8px; pointer-events: none; z-index: 15; }
-        #speed-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--holo); }
+        /* SPEED TACH MOVED TO TOP CENTER */
+        #speed-tach { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; align-items: baseline; gap: 8px; pointer-events: none; z-index: 15; box-shadow: 0 0 10px rgba(0, 170, 255, 0.3); }
+        #speed-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--holo); text-shadow: 0 0 10px var(--holo); }
 
-        #solo-hud { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; gap: 20px; z-index: 15; }
+        #solo-hud { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid var(--holo); padding: 8px 24px; display: flex; gap: 20px; z-index: 15; box-shadow: 0 0 10px rgba(0, 170, 255, 0.3); }
         .solo-stat { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); }
-        .solo-stat span { color: var(--holo); font-weight: bold; }
-
-        /* HAND TRACKING UI */
-        #hand-cam { position: absolute; bottom: 120px; left: 24px; width: 160px; height: 120px; border: 1px solid var(--holo); z-index: 20; background: #000; }
-        #hand-status { position: absolute; bottom: 245px; left: 24px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--holo); background: rgba(0,0,0,0.7); padding: 4px 8px; border: 1px solid var(--border); display: none; }
-
-        /* STEERING WHEEL (25% width, bottom-center) */
-        #wheel-container { 
-            position: fixed; 
-            bottom: 0; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            width: 25vw; 
-            height: 25vw; 
-            min-width: 150px; 
-            min-height: 150px;
-            z-index: 1000; 
-            pointer-events: none; 
-        }
-        #wheel-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(0, 255, 204, 0.3)); transition: transform 0.05s linear; }
-        #hand-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .solo-stat span { color: var(--holo); font-weight: bold; text-shadow: 0 0 5px var(--holo); }
 
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; }
-        .spinner { border: 2px solid rgba(0, 255, 204, 0.2); border-top: 2px solid var(--holo); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .spinner { border: 2px solid rgba(0, 170, 255, 0.2); border-top: 2px solid var(--holo); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         #load-text { color: var(--holo); font-size: 12px; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -138,8 +119,6 @@
     </div>
 
     <video id="input-video" style="display:none;" autoplay playsinline muted></video>
-    <canvas id="hand-cam" width="160" height="120"></canvas>
-    <div id="hand-status">HAND TRACKING: ACTIVE</div>
 
     <canvas id="game-canvas"></canvas>
 
@@ -179,11 +158,6 @@
                 <div id="camera-btn" class="small-btn clip-corner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
             </div>
         </div>
-    </div>
-
-    <div id="wheel-container">
-        <img id="wheel-svg" src="wheel.svg" alt="Steering Wheel">
-        <canvas id="hand-overlay" width="300" height="300"></canvas>
     </div>
 
     <div id="menu-overlay">
@@ -307,7 +281,7 @@
             scene.add(patch); greenPatches.push({ x: px, z: pz, r });
         }
 
-        // --- PROCEDURAL TREES (75% MORE = 175 TOTAL) ---
+        // --- PROCEDURAL TREES (175 TOTAL) ---
         function createProvidedTree() {
             try {
                 const V=(a)=>{let r=[];for(let i=0;i<a.length;i+=3)r.push(new THREE.Vector3(a[i],a[i+1],a[i+2]));return r;}
@@ -329,7 +303,7 @@
         }
 
         const treePositions = []; const treeTemplate = createProvidedTree();
-        for (let i = 0; i < 175; i++) { // Increased to 175
+        for (let i = 0; i < 175; i++) {
             const patch = greenPatches[i % greenPatches.length];
             const angle = Math.sin(i * 1.1) * Math.PI; const dist = Math.abs(Math.cos(i * 2.2)) * patch.r;
             const tx = patch.x + Math.cos(angle) * dist; const tz = patch.z + Math.sin(angle) * dist;
@@ -343,7 +317,7 @@
         const checkpoints = [];
         cpPositions.forEach((p, i) => {
             const cpGeo = new THREE.CylinderGeometry(8, 8, 16, 16, 1, true);
-            const cpMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+            const cpMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
             const cp = new THREE.Mesh(cpGeo, cpMat); cp.position.set(p.x, 8, p.z); cp.visible = (i === 0); scene.add(cp);
             checkpoints.push({ mesh: cp, pos: p, passed: false, idx: i });
         });
@@ -433,7 +407,7 @@
             honkBtn: document.getElementById('honk-btn'), nosBtn: document.getElementById('nos-btn'),
             callModal: document.getElementById('call-modal'), acceptCallBtn: document.getElementById('accept-call-btn'), rejectCallBtn: document.getElementById('reject-call-btn'),
             callBtn: document.getElementById('call-btn'), muteBtn: document.getElementById('mute-btn'), endCallBtn: document.getElementById('end-call-btn'),
-            voiceControls: document.getElementById('voice-controls'), handStatus: document.getElementById('hand-status'),
+            voiceControls: document.getElementById('voice-controls'),
             soloHud: document.getElementById('solo-hud'), soloTime: document.getElementById('solo-time'), soloBest: document.getElementById('solo-best')
         };
 
@@ -463,7 +437,7 @@
             ui.matchLog.style.display = 'block'; ui.statusInd.style.display = 'none';
             ui.steerZone.style.display = 'block'; ui.minimap.style.display = 'block';
             ui.honkBtn.style.display = 'flex'; ui.nosBtn.style.display = 'flex';
-            ui.soloHud.style.display = 'flex'; ui.handStatus.style.display = 'block';
+            ui.soloHud.style.display = 'flex';
             clientCar.group.visible = false;
             startCutscene();
         };
@@ -521,7 +495,7 @@
                 ui.matchLog.style.display = 'block'; ui.statusInd.style.display = 'flex';
                 ui.steerZone.style.display = 'block'; ui.minimap.style.display = 'block';
                 ui.voiceControls.style.display = 'flex'; ui.honkBtn.style.display = 'flex'; ui.nosBtn.style.display = 'flex';
-                ui.handStatus.style.display = 'block'; startCutscene();
+                startCutscene();
             }
         }
 
@@ -586,20 +560,15 @@
             setTimeout(() => { ui.countdownText.style.opacity = 0; resetRacePositions(); if (isHost) { if(!soloMode) sendPacket({ type: 'reset_race' }); startCutscene(); } }, 4000);
         }
 
-        // --- MEDIAPIPE HAND TRACKING (1:1 NO MIRROR) ---
+        // --- MEDIAPIPE HAND TRACKING (TWO HANDS, KNUCKLES, FISTS & THUMBS) ---
         const inputVideo = document.getElementById('input-video');
-        const handCam = document.getElementById('hand-cam');
-        const handCtx = handCam.getContext('2d');
-        const handOverlay = document.getElementById('hand-overlay');
-        const handCtxOverlay = handOverlay.getContext('2d');
-        const wheelSvg = document.getElementById('wheel-svg');
         let hands;
         let handTrackingActive = false;
         let handInput = { gas: false, brk: false, steer: 0 };
 
         function initHands() {
             hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}` });
-            hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+            hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
             hands.onResults(onHandResults);
             startHandCamera();
         }
@@ -608,88 +577,60 @@
         }
         async function processHandFrame() { if (inputVideo.readyState >= 2) await hands.send({ image: inputVideo }); requestAnimationFrame(processHandFrame); }
 
+        function isFist(lm) {
+            return lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+        }
+        
+        function isThumbOut(lm) {
+            // Fingers are tucked, but thumb tip is far from index knuckle
+            let knuckleDist = Math.hypot(lm[3].x - lm[9].x, lm[3].y - lm[9].y);
+            let thumbTipDist = Math.hypot(lm[4].x - lm[9].x, lm[4].y - lm[9].y);
+            return isFist(lm) && thumbTipDist > knuckleDist * 1.3;
+        }
+
         function onHandResults(results) {
-            // NO MIRRORING of the raw feed
-            handCtx.save();
-            handCtx.clearRect(0, 0, handCam.width, handCam.height);
-            handCtx.drawImage(inputVideo, 0, 0, handCam.width, handCam.height);
-            handCtx.restore();
-
-            handCtxOverlay.clearRect(0, 0, handOverlay.width, handOverlay.height);
-
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
                 handTrackingActive = true;
-                const lm = results.multiHandLandmarks[0];
+                let h0 = results.multiHandLandmarks[0];
+                let h1 = results.multiHandLandmarks[1];
                 
-                // Draw skeleton on small cam (Raw, no mirror)
-                handCtx.save();
-                drawConnectors(handCtx, lm, HAND_CONNECTIONS, { color: '#00ffcc', lineWidth: 2 });
-                drawLandmarks(handCtx, lm, { color: '#ff0033', lineWidth: 1, radius: 2 });
-                handCtx.restore();
-
-                const wrist = lm[0], midMcp = lm[9];
+                // Sort hands by X to determine left/right
+                let leftHand = h0[0].x < h1[0].x ? h0 : h1;
+                let rightHand = h0[0].x < h1[0].x ? h1 : h0;
                 
-                // --- SPEED CONTROL (Z-DEPTH / HAND SIZE) ---
-                let minY = 1, maxY = 0;
-                lm.forEach(p => { minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
-                const handSize = maxY - minY; // Approx 0.3 normal, 0.5 close, 0.15 far
+                // --- SPEED CONTROL (FISTS vs THUMBS OUT) ---
+                const leftFist = isFist(leftHand);
+                const rightFist = isFist(rightHand);
+                const leftThumbOut = isThumbOut(leftHand);
+                const rightThumbOut = isThumbOut(rightHand);
                 
-                if (handSize > 0.45) { handInput.gas = true; handInput.brk = false; }
-                else if (handSize < 0.25) { handInput.gas = false; handInput.brk = true; }
-                else { handInput.gas = false; handInput.brk = false; }
+                if (leftThumbOut && rightThumbOut) {
+                    handInput.gas = false; handInput.brk = true;
+                } else if (leftFist && rightFist) {
+                    handInput.gas = true; handInput.brk = false;
+                } else {
+                    handInput.gas = false; handInput.brk = false;
+                }
                 
-                // --- STEERING CONTROL (1:1 ROLL) ---
-                // Vector from wrist to middle MCP. 
-                // If hand is vertical (pointing up), dx=0, dy<0 (since y goes down). atan2(-, 0) = -PI/2.
-                // We want vertical to be 0. Right tilt (palm down right) -> dx>0, dy=0 -> atan2(0, +) = 0.
-                const dx = midMcp.x - wrist.x;
-                const dy = midMcp.y - wrist.y;
-                const angle = Math.atan2(dy, dx);
+                // --- STEERING CONTROL (KNUCKLE LINE TILT) ---
+                const leftKnuckle = leftHand[9]; // Middle finger MCP
+                const rightKnuckle = rightHand[9];
                 
-                // Normalize: vertical is -PI/2. Right is 0. Left is PI (or -PI).
-                let steerVal = (angle + Math.PI/2) / (Math.PI/3); // Max turn at 60deg tilt
-                handInput.steer = Math.max(-1, Math.min(1, steerVal)) * Config.MaxSteerAngle;
+                const dx = rightKnuckle.x - leftKnuckle.x;
+                const dy = rightKnuckle.y - leftKnuckle.y;
+                const angle = Math.atan2(dy, dx); // 0 is level, positive is right side down
                 
-                // Rotate visual wheel
-                wheelSvg.style.transform = `rotate(${angle + Math.PI/2}rad)`;
+                // Max steer at 30 degrees (PI/6) tilt
+                const targetSteer = Math.max(-1, Math.min(1, angle / (Math.PI / 6))) * Config.MaxSteerAngle;
                 
-                // --- HAND OVERLAY ON WHEEL (CENTERED) ---
-                // Map hand to always appear on the wheel
-                const cx = handOverlay.width / 2, cy = handOverlay.height / 2;
-                const handCenterX = (wrist.x + midMcp.x) / 2;
-                const handCenterY = (wrist.y + midMcp.y) / 2;
-                const scale = 150; // Scale factor for drawing on 300x300 canvas
-                
-                handCtxOverlay.save();
-                handCtxOverlay.translate(cx, cy);
-                handCtxOverlay.rotate(angle + Math.PI/2); // Match wheel rotation
-                
-                handCtxOverlay.strokeStyle = 'rgba(0, 255, 204, 0.9)';
-                handCtxOverlay.lineWidth = 4;
-                handCtxOverlay.shadowColor = '#00ffcc';
-                handCtxOverlay.shadowBlur = 8;
-                handCtxOverlay.beginPath();
-                const connections = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-                connections.forEach(([a, b]) => {
-                    const p1 = lm[a], p2 = lm[b];
-                    handCtxOverlay.moveTo((p1.x - handCenterX) * scale, (p1.y - handCenterY) * scale);
-                    handCtxOverlay.lineTo((p2.x - handCenterX) * scale, (p2.y - handCenterY) * scale);
-                });
-                handCtxOverlay.stroke();
-                
-                handCtxOverlay.fillStyle = '#ff0033';
-                handCtxOverlay.shadowColor = '#ff0033';
-                lm.forEach(pt => {
-                    handCtxOverlay.beginPath();
-                    handCtxOverlay.arc((pt.x - handCenterX) * scale, (pt.y - handCenterY) * scale, 3, 0, Math.PI * 2);
-                    handCtxOverlay.fill();
-                });
-                handCtxOverlay.restore();
+                // Artificial Smoothening (Lerp)
+                handInput.steer += (targetSteer - handInput.steer) * 0.15;
                 
             } else {
                 handTrackingActive = false;
-                handInput.gas = false; handInput.brk = false; handInput.steer = 0;
-                wheelSvg.style.transform = `rotate(0rad)`;
+                handInput.gas = false; handInput.brk = false; 
+                // Smoothly return to center
+                handInput.steer += (0 - handInput.steer) * 0.15;
             }
         }
 
@@ -739,7 +680,7 @@
             greenPatches.forEach(p => { const x = (p.x - localState.x) * scale + 75; const y = (p.z - localState.z) * scale + 75; if (x > -20 && x < 170 && y > -20 && y < 170) { ctx.beginPath(); ctx.arc(x, y, p.r * scale, 0, Math.PI * 2); ctx.fill(); } });
             ctx.fillStyle = "#223300";
             treePositions.forEach(t => { const x = (t.x - localState.x) * scale + 75; const y = (t.z - localState.z) * scale + 75; if (x > 0 && x < 150 && y > 0 && y < 150) { ctx.fillRect(x-1, y-1, 2, 2); } });
-            checkpoints.forEach(cp => { if(!cp.passed) { const x = (cp.pos.x - localState.x) * scale + 75; const y = (cp.pos.z - localState.z) * scale + 75; ctx.fillStyle = "#00ffcc"; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); } });
+            checkpoints.forEach(cp => { if(!cp.passed) { const x = (cp.pos.x - localState.x) * scale + 75; const y = (cp.pos.z - localState.z) * scale + 75; ctx.fillStyle = "#00aaff"; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); } });
             if(!soloMode) {
                 const remState = isHost ? clientState : hostState;
                 ctx.fillStyle = isHost ? "#00aaff" : "#ff0033"; ctx.beginPath(); ctx.arc((remState.x - localState.x) * scale + 75, (remState.z - localState.z) * scale + 75, 3, 0, Math.PI * 2); ctx.fill();

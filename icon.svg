@@ -1,22 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
-  <rect width="300" height="300" fill="#ffffff"/>
   <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#003366"/>
+      <stop offset="100%" stop-color="#00111a"/>
+    </radialGradient>
     <radialGradient id="wheelGrip" cx="50%" cy="50%" r="50%">
       <stop offset="70%" stop-color="#27272a"/>
       <stop offset="100%" stop-color="#09090b"/>
     </radialGradient>
   </defs>
-  <g transform="translate(0, 0) scale(1)">
-    <circle cx="150" cy="150" r="130" fill="none" stroke="#000000" stroke-width="32" opacity="0.4"/>
-    <circle cx="150" cy="150" r="130" fill="none" stroke="url(#wheelGrip)" stroke-width="26"/>
-    <circle cx="150" cy="150" r="143" fill="none" stroke="#3f3f46" stroke-width="2"/>
-    <circle cx="150" cy="150" r="117" fill="none" stroke="#18181b" stroke-width="2"/>
-    <path d="M150,7 A143,143 0 0,1 150,23" fill="none" stroke="#ef4444" stroke-width="26"/>
-    <polygon points="150,150 35,135 40,165" fill="#52525b"/>
-    <polygon points="150,150 265,135 260,165" fill="#52525b"/>
-    <polygon points="150,150 135,265 165,265" fill="#3f3f46"/>
-    <circle cx="150" cy="150" r="45" fill="#18181b" stroke="#3f3f46" stroke-width="4"/>
-    <circle cx="150" cy="150" r="28" fill="#09090b" stroke="#ef4444" stroke-width="2"/>
-    <path d="M142,150 L150,138 L158,150 L150,162 Z" fill="#ef4444"/>
-  </g>
+  <rect width="300" height="300" fill="url(#bgGrad)"/>
+  <circle cx="150" cy="150" r="130" fill="none" stroke="#000000" stroke-width="32" opacity="0.4"/>
+  <circle cx="150" cy="150" r="130" fill="none" stroke="url(#wheelGrip)" stroke-width="26"/>
+  <circle cx="150" cy="150" r="143" fill="none" stroke="#3f3f46" stroke-width="2"/>
+  <circle cx="150" cy="150" r="117" fill="none" stroke="#18181b" stroke-width="2"/>
+  <path d="M150,7 A143,143 0 0,1 150,23" fill="none" stroke="#00aaff" stroke-width="26"/>
+  <polygon points="150,150 35,135 40,165" fill="#52525b"/>
+  <polygon points="150,150 265,135 260,165" fill="#52525b"/>
+  <polygon points="150,150 135,265 165,265" fill="#3f3f46"/>
+  <circle cx="150" cy="150" r="45" fill="#18181b" stroke="#3f3f46" stroke-width="4"/>
+  <circle cx="150" cy="150" r="28" fill="#09090b" stroke="#00aaff" stroke-width="2"/>
+  <path d="M142,150 L150,138 L158,150 L150,162 Z" fill="#00aaff"/>
 </svg>
