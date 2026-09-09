@@ -567,12 +567,34 @@
             setTimeout(() => { ui.countdownText.style.opacity = 0; resetRacePositions(); if (isHost) { if(!soloMode) sendPacket({ type: 'reset_race' }); startCutscene(); } }, 4000);
         }
 
-        // --- MEDIAPIPE HAND TRACKING (DEADZONE & SMOOTHING) ---
+        // --- PROGRESSIVE STEERING CONFIG ---
+        const HAND_STEERING_CONFIG = {
+            landmarkSmoothing: 0.15,
+            deadZone: 0.10,
+            releaseDeadZone: 0.06,
+            maxEffectiveTilt: 35 * Math.PI / 180,
+            responseCurve: 1.7,
+            steeringResponseSpeed: 4.0,
+            minimumHandDistance: 0.08,
+            recalibrationDelay: 500
+        };
+
+        // --- MEDIAPIPE HAND TRACKING STATE ---
         const inputVideo = document.getElementById('input-video');
         const handCtx = ui.handCam.getContext('2d');
         let hands;
         let handTrackingActive = false;
         let handInput = { gas: false, brk: false, steer: 0 };
+        
+        let neutralAngle = null;
+        let filteredLeft = { x: 0, y: 0 };
+        let filteredRight = { x: 0, y: 0 };
+        let lastHandSeenTime = 0;
+        let isSteeringActive = false;
+        let calibrationFrames = 0;
+        let gestureBuffer = { gas: 0, brk: 0, none: 0 };
+        let stableGas = false, stableBrk = false;
+        let lastHandProcessTime = performance.now();
 
         function initHands() {
             hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}` });
@@ -595,11 +617,22 @@
             return isFist(lm) && thumbTipDist > knuckleDist * 1.3;
         }
 
+        function normalizeAngle(angle) {
+            while (angle > Math.PI) angle -= Math.PI * 2;
+            while (angle < -Math.PI) angle += Math.PI * 2;
+            return angle;
+        }
+
         function onHandResults(results) {
+            // Draw camera feed
             handCtx.save();
             handCtx.clearRect(0, 0, ui.handCam.width, ui.handCam.height);
             handCtx.drawImage(inputVideo, 0, 0, ui.handCam.width, ui.handCam.height);
             handCtx.restore();
+
+            const currentTime = performance.now();
+            const dt = Math.min(0.1, (currentTime - lastHandProcessTime) / 1000);
+            lastHandProcessTime = currentTime;
 
             if (results.multiHandLandmarks && results.multiHandLandmarks.length === 2) {
                 handTrackingActive = true;
@@ -614,54 +647,104 @@
                 });
                 handCtx.restore();
 
-                let leftHand = h0[0].x < h1[0].x ? h0 : h1;
-                let rightHand = h0[0].x < h1[0].x ? h1 : h0;
+                // Sort hands by X (Unmirrored: User's Left hand appears on the right side of the image)
+                let userLeftHand = h0[0].x > h1[0].x ? h0 : h1;
+                let userRightHand = h0[0].x > h1[0].x ? h1 : h0;
                 
-                // --- SPEED CONTROL ---
-                const leftFist = isFist(leftHand);
-                const rightFist = isFist(rightHand);
-                const leftThumbOut = isThumbOut(leftHand);
-                const rightThumbOut = isThumbOut(rightHand);
+                // --- GESTURE STABILITY (DEBOUNCING) ---
+                const leftFist = isFist(userLeftHand);
+                const rightFist = isFist(userRightHand);
+                const leftThumbOut = isThumbOut(userLeftHand);
+                const rightThumbOut = isThumbOut(userRightHand);
                 
-                if (leftThumbOut && rightThumbOut) {
-                    handInput.gas = false; handInput.brk = true;
-                } else if (leftFist && rightFist) {
-                    handInput.gas = true; handInput.brk = false;
-                } else {
-                    handInput.gas = false; handInput.brk = false;
+                let currentGesture = 'none';
+                if (leftThumbOut && rightThumbOut) currentGesture = 'brk';
+                else if (leftFist && rightFist) currentGesture = 'gas';
+
+                const GESTURE_FRAMES_REQUIRED = 4;
+                if (currentGesture === 'gas') gestureBuffer.gas++; else gestureBuffer.gas = Math.max(0, gestureBuffer.gas - 1);
+                if (currentGesture === 'brk') gestureBuffer.brk++; else gestureBuffer.brk = Math.max(0, gestureBuffer.brk - 1);
+
+                if (gestureBuffer.gas >= GESTURE_FRAMES_REQUIRED) { stableGas = true; stableBrk = false; }
+                else if (gestureBuffer.brk >= GESTURE_FRAMES_REQUIRED) { stableBrk = true; stableGas = false; }
+                else if (gestureBuffer.gas === 0 && gestureBuffer.brk === 0) { stableGas = false; stableBrk = false; }
+
+                handInput.gas = stableGas;
+                handInput.brk = stableBrk;
+
+                // --- FILTER LANDMARK 9 ---
+                filteredLeft.x += (userLeftHand[9].x - filteredLeft.x) * HAND_STEERING_CONFIG.landmarkSmoothing;
+                filteredLeft.y += (userLeftHand[9].y - filteredLeft.y) * HAND_STEERING_CONFIG.landmarkSmoothing;
+                filteredRight.x += (userRightHand[9].x - filteredRight.x) * HAND_STEERING_CONFIG.landmarkSmoothing;
+                filteredRight.y += (userRightHand[9].y - filteredRight.y) * HAND_STEERING_CONFIG.landmarkSmoothing;
+
+                // --- CHECK MINIMUM HAND DISTANCE ---
+                let dx = filteredRight.x - filteredLeft.x;
+                let dy = filteredRight.y - filteredLeft.y;
+                let handDistance = Math.hypot(dx, dy);
+
+                const now = Date.now();
+                const lostTracking = (now - lastHandSeenTime > HAND_STEERING_CONFIG.recalibrationDelay);
+                lastHandSeenTime = now;
+
+                if (handDistance < HAND_STEERING_CONFIG.minimumHandDistance) {
+                    // Hands too close, math is unstable. Hold previous steering value.
+                    return; 
                 }
-                
-                // --- STEERING CONTROL (DEADZONE & PROGRESSIVE) ---
-                const leftKnuckle = leftHand[9];
-                const rightKnuckle = rightHand[9];
-                
-                const dx = rightKnuckle.x - leftKnuckle.x;
-                const dy = rightKnuckle.y - leftKnuckle.y;
-                const angle = Math.atan2(dy, dx); 
-                
-                // Deadzone to ignore slight bobbling (~10 degrees or 0.17 radians)
-                const deadZone = 0.1; 
-                let mappedAngle = angle;
-                if (Math.abs(mappedAngle) < deadZone) {
-                    mappedAngle = 0;
+
+                // --- CALIBRATE NEUTRAL POSITION ---
+                if (neutralAngle === null || lostTracking) {
+                    calibrationFrames++;
+                    if (calibrationFrames > 5) { // Require 5 stable frames
+                        neutralAngle = Math.atan2(dy, dx);
+                        isSteeringActive = false;
+                    }
                 } else {
-                    // Re-map angle outside deadzone for progressive steering
-                    mappedAngle = mappedAngle - (Math.sign(mappedAngle) * deadZone);
+                    calibrationFrames = 0;
+                    
+                    // --- CALCULATE VIRTUAL WHEEL ANGLE ---
+                    let rawWheelAngle = Math.atan2(dy, dx);
+                    let angleDifference = normalizeAngle(rawWheelAngle - neutralAngle);
+
+                    // --- HYSTERESIS DEADZONE ---
+                    const dz = isSteeringActive ? HAND_STEERING_CONFIG.releaseDeadZone : HAND_STEERING_CONFIG.deadZone;
+                    let magnitude = Math.abs(angleDifference);
+                    let sign = Math.sign(angleDifference);
+                    let targetSteer = 0;
+
+                    if (magnitude <= dz) {
+                        targetSteer = 0;
+                        isSteeringActive = false;
+                    } else {
+                        isSteeringActive = true;
+                        // --- PROGRESSIVE RESPONSE CURVE ---
+                        const tiltRange = HAND_STEERING_CONFIG.maxEffectiveTilt - dz;
+                        const normalized = Math.min(1, (magnitude - dz) / tiltRange);
+                        const response = Math.pow(normalized, HAND_STEERING_CONFIG.responseCurve);
+                        targetSteer = sign * response * Config.MaxSteerAngle;
+                    }
+
+                    // --- STEERING RATE LIMIT (FRAME-RATE INDEPENDENT) ---
+                    const lerpFactor = Math.min(1, HAND_STEERING_CONFIG.steeringResponseSpeed * dt);
+                    handInput.steer += (targetSteer - handInput.steer) * lerpFactor;
                 }
-                
-                // Max steering at 45 degrees (PI/4) tilt
-                const maxTilt = Math.PI / 4; 
-                const tiltRange = maxTilt - deadZone;
-                let targetSteer = (mappedAngle / tiltRange) * Config.MaxSteerAngle;
-                targetSteer = Math.max(-Config.MaxSteerAngle, Math.min(Config.MaxSteerAngle, targetSteer));
-                
-                // Stronger Smoothing (0.08 lerp factor for stability)
-                handInput.steer += (targetSteer - handInput.steer) * 0.08;
                 
             } else {
+                // --- HAND TRACKING LOSS ---
                 handTrackingActive = false;
-                handInput.gas = false; handInput.brk = false; 
-                handInput.steer += (0 - handInput.steer) * 0.08;
+                handInput.gas = false; handInput.brk = false;
+                gestureBuffer.gas = 0; gestureBuffer.brk = 0;
+                stableGas = false; stableBrk = false;
+
+                // Smoothly return steering to center
+                const lerpFactor = Math.min(1, HAND_STEERING_CONFIG.steeringResponseSpeed * dt);
+                handInput.steer += (0 - handInput.steer) * lerpFactor;
+                
+                // If hands are lost for a long time, force recalibration
+                if (Date.now() - lastHandSeenTime > HAND_STEERING_CONFIG.recalibrationDelay) {
+                    neutralAngle = null;
+                    calibrationFrames = 0;
+                }
             }
         }
 
